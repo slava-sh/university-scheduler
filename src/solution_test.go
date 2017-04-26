@@ -17,15 +17,35 @@ func TestSolve_sanity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			problem := ReadProblem(NewFastReader(in))
 			s := Solve(problem)
+
 			if s.Fatigue < 0 {
 				t.Fatal("negative fatigue")
 			}
+
+			for day := 1; day <= s.DaysPerWeek; day++ {
+				for class := 1; class <= s.ClassesPerDay; class++ {
+					numRooms := 0
+					for group := 1; group <= s.NumGroups; group++ {
+						prof := s.Schedule[group][day][class]
+						if prof != 0 {
+							numRooms++
+						}
+					}
+					if numRooms > s.NumRooms {
+						t.Fatalf(
+							"too many rooms occupied on (day=%d, class=%d)",
+							day, class,
+						)
+					}
+				}
+			}
+
 			for day := 1; day <= s.DaysPerWeek; day++ {
 				for class := 1; class <= s.ClassesPerDay; class++ {
 					profIsBusy := make(map[int]bool)
-					numRooms := 0
 					for group := 1; group <= s.NumGroups; group++ {
 						prof := s.Schedule[group][day][class]
 						if prof == 0 {
@@ -38,12 +58,34 @@ func TestSolve_sanity(t *testing.T) {
 							)
 						}
 						profIsBusy[prof] = true
-						numRooms++
 					}
-					if numRooms > s.NumRooms {
+				}
+			}
+
+			type GP struct {
+				Group int
+				Prof  int
+			}
+			numClasses := make(map[GP]int)
+			for day := 1; day <= s.DaysPerWeek; day++ {
+				for class := 1; class <= s.ClassesPerDay; class++ {
+					for group := 1; group <= s.NumGroups; group++ {
+						prof := s.Schedule[group][day][class]
+						if prof == 0 {
+							continue
+						}
+						numClasses[GP{group, prof}]++
+					}
+				}
+			}
+			for group := 1; group <= s.NumGroups; group++ {
+				for prof := 1; prof <= s.NumProfs; prof++ {
+					expected := s.NumClasses[group][prof]
+					actual := numClasses[GP{group, prof}]
+					if actual != expected {
 						t.Fatalf(
-							"too many rooms occupied on (day=%d, class=%d)",
-							day, class,
+							"expected %d classes for (group=%d, prof=%d), got %d",
+							expected, group, prof, actual,
 						)
 					}
 				}
