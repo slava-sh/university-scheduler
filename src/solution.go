@@ -95,21 +95,21 @@ func solveNaive(p Problem) Solution {
 			groupIsBusy := make(map[int]bool)
 			profIsBusy := make(map[int]bool)
 			for groupAndProf := range classesToSchedule {
-				room++
-				if room > s.NumRooms {
-					break
-				}
 				group := groupAndProf.Group
 				prof := groupAndProf.Prof
 				if profIsBusy[prof] || groupIsBusy[group] {
 					continue
 				}
+				if room == s.NumRooms {
+					break
+				}
+				room++
 				classesToSchedule[groupAndProf]--
 				if classesToSchedule[groupAndProf] == 0 {
 					delete(classesToSchedule, groupAndProf)
 				}
 				s.Schedule[group][day][class] = prof
-				groupIsBusy[prof] = true
+				groupIsBusy[group] = true
 				profIsBusy[prof] = true
 			}
 		}
