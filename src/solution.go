@@ -78,18 +78,22 @@ func (s *Solution) UpdateFatigue() {
 	s.Fatigue = fatigue
 }
 
+const thresholdIncrease = 0.01
+const thresholdDecrease = 1
+
 func Solve(p Problem, timeLimit time.Duration) Solution {
 	start := time.Now()
 	solution := solveNaive(p)
 	bestSolution := solution
 	firstFatigue := solution.Fatigue
 	stepStart := time.Now()
+	threshold := 0.0
 	for i := 0; ; i++ {
-		timeLeft := timeLimit - time.Since(start)
+		timeElapsed := time.Since(start)
 		if i != 0 {
 			timePerStep := time.Duration(int(time.Since(stepStart)) / i)
+			timeLeft := timeLimit - timeElapsed
 			if timeLeft <= timePerStep {
-				log.Println("steps:", i)
 				log.Println("time per step:", timePerStep)
 				log.Println("fatigue:", firstFatigue, "->", bestSolution.Fatigue)
 				break
@@ -97,18 +101,30 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 		}
 		newSolution := neighbor(solution)
 		delta := newSolution.Fatigue - solution.Fatigue
-		if shouldAccept(delta, timeLimit) {
+		progress := float64(timeElapsed) / float64(timeLimit)
+		if i%10000 == 0 {
+			log.Printf("%6.3f %6.3f %6d\n", progress, threshold, solution.Fatigue)
+		}
+		sa.Write([]string{
+			fmt.Sprintf("%.4f", progress),
+			fmt.Sprintf("%.4f", threshold),
+			fmt.Sprint(delta),
+			fmt.Sprint(solution.Fatigue),
+		})
+		if float64(delta) <= threshold {
+			threshold -= thresholdDecrease
+			if threshold < 0 {
+				threshold = 0
+			}
 			solution = newSolution
 			if solution.Fatigue < bestSolution.Fatigue {
 				bestSolution = solution
 			}
+		} else {
+			threshold += thresholdIncrease
 		}
 	}
 	return bestSolution
-}
-
-func shouldAccept(delta int, _ time.Duration) bool {
-	return delta <= 0
 }
 
 func neighbor(s Solution) Solution {

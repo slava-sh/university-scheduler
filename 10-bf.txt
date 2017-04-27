@@ -1,0 +1,52 @@
+slava@slava-laptop:~/Code/codeforces.ru/2017-vkcup/wildcard-2-timetable
+$ ./run.sh ./input/10.txt | head
+2017/04/27 15:07:28 steps: 119478
+2017/04/27 15:07:28 time per step: 82.855µs
+2017/04/27 15:07:28 fatigue: 7015 -> 4712
+4712
+
+2017/04/27 15:07:28 elapsed: 9.901016933s
+        9.90 real        11.16 user         0.23 sys
+
+
+$ ./run.sh ./input/10.txt | head
+2017/04/27 15:07:40 steps: 119509
+2017/04/27 15:07:40 time per step: 82.834µs
+2017/04/27 15:07:40 fatigue: 7062 -> 4710
+4710
+
+2017/04/27 15:07:40 elapsed: 9.901304853s
+        9.90 real        11.15 user         0.24 sys
+
+
+slava@slava-laptop:~/Code/codeforces.ru/2017-vkcup/wildcard-2-timetable
+$ ./run.sh ./input/10.txt | head
+2017/04/27 15:07:51 steps: 119295
+2017/04/27 15:07:51 time per step: 82.982µs
+2017/04/27 15:07:51 fatigue: 7496 -> 4712
+4712
+
+2017/04/27 15:07:51 elapsed: 9.900993494s
+        9.90 real        11.14 user         0.24 sys
+
+
+slava@slava-laptop:~/Code/codeforces.ru/2017-vkcup/wildcard-2-timetable
+$ ./run.sh ./input/10.txt | head
+2017/04/27 15:08:02 steps: 120123
+2017/04/27 15:08:02 time per step: 82.41µs
+2017/04/27 15:08:02 fatigue: 7127 -> 4710
+4710
+
+2017/04/27 15:08:02 elapsed: 9.901004262s
+        9.90 real        11.15 user         0.23 sys
+
+
+slava@slava-laptop:~/Code/codeforces.ru/2017-vkcup/wildcard-2-timetable
+$ ./run.sh ./input/10.txt | head
+2017/04/27 15:08:13 steps: 116937
+2017/04/27 15:08:13 time per step: 84.656µs
+2017/04/27 15:08:13 fatigue: 6840 -> 4712
+4712
+
+2017/04/27 15:08:13 elapsed: 9.90104032s
+        9.90 real        11.07 user         0.26 sys
