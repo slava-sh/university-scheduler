@@ -7,8 +7,9 @@ import (
 
 type Solution struct {
 	Problem
-	Fatigue  int
-	Schedule [][][]int // [group][day][class] -> prof
+	Fatigue       int
+	GroupSchedule [][][]int // [group][day][class] -> prof
+	ProfSchedule  [][][]int // [group][day][class] -> group
 }
 
 func (s *Solution) Print(out io.Writer) {
@@ -20,7 +21,7 @@ func (s *Solution) Print(out io.Writer) {
 				if day != 1 {
 					fmt.Fprintf(out, " ")
 				}
-				fmt.Fprintf(out, "%d", s.Schedule[group][day][class])
+				fmt.Fprintf(out, "%d", s.GroupSchedule[group][day][class])
 			}
 			fmt.Fprintf(out, "\n")
 		}
@@ -30,28 +31,26 @@ func (s *Solution) Print(out io.Writer) {
 func (s *Solution) UpdateFatigue() {
 	fatigue := 0
 	for day := 1; day <= s.DaysPerWeek; day++ {
-		for prof := 1; prof <= s.NumProfs; prof++ {
+		for group := 1; group <= s.NumGroups; group++ {
 			maxClass := 0
 			minClass := s.ClassesPerDay
-			for group := 1; group <= s.NumGroups; group++ {
-				for class := 1; class <= s.ClassesPerDay; class++ {
-					if s.Schedule[group][day][class] != prof {
-						continue
-					}
-					minClass = min(minClass, class)
-					maxClass = max(maxClass, class)
+			for class := 1; class <= s.ClassesPerDay; class++ {
+				if s.GroupSchedule[group][day][class] == 0 {
+					continue
 				}
+				minClass = min(minClass, class)
+				maxClass = max(maxClass, class)
 			}
 			if maxClass == 0 {
 				continue
 			}
 			fatigue += square(2 + maxClass - minClass + 1)
 		}
-		for group := 1; group <= s.NumGroups; group++ {
+		for prof := 1; prof <= s.NumProfs; prof++ {
 			maxClass := 0
 			minClass := s.ClassesPerDay
 			for class := 1; class <= s.ClassesPerDay; class++ {
-				if s.Schedule[group][day][class] == 0 {
+				if s.ProfSchedule[prof][day][class] == 0 {
 					continue
 				}
 				minClass = min(minClass, class)
@@ -73,7 +72,8 @@ func Solve(p Problem) Solution {
 func solveNaive(p Problem) Solution {
 	var s Solution
 	s.Problem = p
-	s.Schedule = makeSchedule(p)
+	s.GroupSchedule = makeSchedule(p, p.NumGroups)
+	s.ProfSchedule = makeSchedule(p, p.NumProfs)
 
 	type GroupAndProf struct {
 		Group int
@@ -108,7 +108,8 @@ func solveNaive(p Problem) Solution {
 				if classesToSchedule[groupAndProf] == 0 {
 					delete(classesToSchedule, groupAndProf)
 				}
-				s.Schedule[group][day][class] = prof
+				s.GroupSchedule[group][day][class] = prof
+				s.ProfSchedule[prof][day][class] = group
 				groupIsBusy[group] = true
 				profIsBusy[prof] = true
 			}
@@ -119,12 +120,12 @@ func solveNaive(p Problem) Solution {
 	return s
 }
 
-func makeSchedule(p Problem) [][][]int {
-	schedule := make([][][]int, p.NumGroups+1)
-	for group := 1; group <= p.NumGroups; group++ {
-		schedule[group] = make([][]int, p.DaysPerWeek+1)
+func makeSchedule(p Problem, size int) [][][]int {
+	schedule := make([][][]int, size+1)
+	for i := 1; i <= size; i++ {
+		schedule[i] = make([][]int, p.DaysPerWeek+1)
 		for day := 1; day <= p.DaysPerWeek; day++ {
-			schedule[group][day] = make([]int, p.ClassesPerDay+1)
+			schedule[i][day] = make([]int, p.ClassesPerDay+1)
 		}
 	}
 	return schedule

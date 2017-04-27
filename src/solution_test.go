@@ -29,7 +29,7 @@ func TestSolve_sanity(t *testing.T) {
 				for class := 1; class <= s.ClassesPerDay; class++ {
 					numRooms := 0
 					for group := 1; group <= s.NumGroups; group++ {
-						prof := s.Schedule[group][day][class]
+						prof := s.GroupSchedule[group][day][class]
 						if prof != 0 {
 							numRooms++
 						}
@@ -45,19 +45,16 @@ func TestSolve_sanity(t *testing.T) {
 
 			for day := 1; day <= s.DaysPerWeek; day++ {
 				for class := 1; class <= s.ClassesPerDay; class++ {
-					profIsBusy := make(map[int]bool)
 					for group := 1; group <= s.NumGroups; group++ {
-						prof := s.Schedule[group][day][class]
+						prof := s.GroupSchedule[group][day][class]
 						if prof == 0 {
 							continue
 						}
-						if profIsBusy[prof] {
+						if s.ProfSchedule[prof][day][class] != group {
 							t.Fatalf(
-								"prof=%d has multiple groups on (day=%d, class=%d)",
-								prof, day, class,
-							)
+								"GroupSchedule is inconsistent with ProfSchedule "+
+									"on (day=%d, class=%d)", day, class)
 						}
-						profIsBusy[prof] = true
 					}
 				}
 			}
@@ -70,7 +67,7 @@ func TestSolve_sanity(t *testing.T) {
 			for day := 1; day <= s.DaysPerWeek; day++ {
 				for class := 1; class <= s.ClassesPerDay; class++ {
 					for group := 1; group <= s.NumGroups; group++ {
-						prof := s.Schedule[group][day][class]
+						prof := s.GroupSchedule[group][day][class]
 						if prof == 0 {
 							continue
 						}
