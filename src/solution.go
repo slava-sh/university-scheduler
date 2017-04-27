@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"sort"
 	"time"
 )
 
@@ -94,7 +95,8 @@ func (s *Solution) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-const PopulationSize = 10
+const PopulationSize = 7
+const NumPops = 3
 
 func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
@@ -116,18 +118,32 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 				break
 			}
 		}
-		a := population.Pop()
-		b := population.Pop()
-		betterSolution := a
-		if b.Fatigue < a.Fatigue {
-			betterSolution = b
+
+		solution := population.Pop()
+		for j := 1; j < NumPops; j++ {
+			other := population.Pop()
+			if other.Fatigue < solution.Fatigue {
+				solution = other
+			}
 		}
-		population.Push(betterSolution)
-		newSolution := randomNeighbor(betterSolution)
-		if newSolution.Fatigue < bestSolution.Fatigue {
-			bestSolution = newSolution
+
+		population.Push(solution)
+		for j := 1; j < NumPops; j++ {
+			solution = randomNeighbor(solution)
+			if solution.Fatigue < bestSolution.Fatigue {
+				bestSolution = solution
+			}
+			population.Push(solution)
 		}
-		population.Push(newSolution)
+
+		if false && i%10000 == 0 {
+			scores := make([]int, 0)
+			for _, p := range population {
+				scores = append(scores, p.value.Fatigue)
+			}
+			sort.Ints(scores)
+			log.Println(scores)
+		}
 	}
 	return bestSolution
 }
