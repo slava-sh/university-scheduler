@@ -93,17 +93,10 @@ func (s *Solution) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-const PopulationSize = 5
-const NumPops = 2
-
 func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
-	firstSolution := solveNaive(p)
-	bestSolution := firstSolution
-	population := MakeRandomSet()
-	for i := 0; i < PopulationSize; i++ {
-		population.Push(firstSolution)
-	}
+	solution := solveNaive(p)
+	bestSolution := solution
 	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
@@ -113,22 +106,13 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 				break
 			}
 		}
-
-		solution := population.Pop()
-		for j := 1; j < NumPops; j++ {
-			other := population.Pop()
-			if other.Fatigue < solution.Fatigue {
-				solution = other
-			}
-		}
-
-		population.Push(solution)
-		for j := 1; j < NumPops; j++ {
-			solution = randomNeighbor(solution)
+		newSolution := randomNeighbor(solution)
+		delta := newSolution.Fatigue - solution.Fatigue
+		if delta <= 0 {
+			solution = newSolution
 			if solution.Fatigue < bestSolution.Fatigue {
 				bestSolution = solution
 			}
-			population.Push(solution)
 		}
 	}
 	return bestSolution
