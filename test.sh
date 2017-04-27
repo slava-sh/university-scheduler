@@ -1,3 +1,10 @@
 #!/bin/bash -e
 
-go test ./src
+if type godebug >/dev/null; then
+  # Use godebug if available.
+  GO=godebug
+else
+  GO=go
+fi
+
+$GO test ./src
