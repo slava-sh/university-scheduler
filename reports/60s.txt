@@ -1,0 +1,7 @@
+# before new sa
+$ ./run.sh ./input/04.txt >/dev/null
+2017/04/27 19:10:25 steps: 2313761
+2017/04/27 19:10:25 time per step: 25.928µs
+2017/04/27 19:10:25 fatigue: 29421 -> 17456
+2017/04/27 19:10:25 elapsed: 1m0.012229806s
+       60.01 real        66.54 user         1.28 sys
