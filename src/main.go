@@ -52,5 +52,5 @@ func runAll() {
 		totalScore += averageScore
 		fmt.Printf("%9.3f\n", averageScore)
 	}
-	fmt.Printf("score%9.3f\n", totalScore)
+	fmt.Printf("score %9.3f\n", totalScore)
 }
