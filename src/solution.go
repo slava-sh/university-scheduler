@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -101,9 +102,10 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 	firstFatigue := solution.Fatigue
 	loopStart := time.Now()
 	for i := 0; ; i++ {
+		timeElapsed := time.Since(start)
 		if i != 0 {
 			timePerStep := time.Duration(int(time.Since(loopStart)) / i)
-			timeLeft := timeLimit - time.Since(start)
+			timeLeft := timeLimit - timeElapsed
 			if timeLeft <= timePerStep {
 				log.Println("steps:", i)
 				log.Println("time per step:", timePerStep)
@@ -113,7 +115,8 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 		}
 		newSolution := randomNeighbor(solution)
 		delta := newSolution.Fatigue - solution.Fatigue
-		if shouldAccept(delta) {
+		progress := float64(timeElapsed) / float64(timeLimit)
+		if shouldAccept(delta, progress) {
 			solution = newSolution
 			if solution.Fatigue < bestSolution.Fatigue {
 				bestSolution = solution
@@ -123,8 +126,15 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 	return bestSolution
 }
 
-func shouldAccept(delta int) bool {
-	return delta <= 0
+func shouldAccept(delta int, progress float64) bool {
+	if delta <= 0 {
+		return true
+	}
+	const tInitial = 10
+	const tFinal = 0.1
+	t := tInitial * math.Pow(tFinal/tInitial, progress)
+	p := math.Exp(-float64(delta) / t)
+	return p > rand.Float64()
 }
 
 func randomNeighbor(s Solution) Solution {
