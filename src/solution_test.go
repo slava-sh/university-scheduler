@@ -1,8 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -100,7 +98,6 @@ func TestSolve_sanity(t *testing.T) {
 }
 
 func BenchmarkSolve(b *testing.B) {
-	log.SetOutput(ioutil.Discard)
 	in, err := os.Open("../input/04.txt")
 	if err != nil {
 		b.Fatal(err)

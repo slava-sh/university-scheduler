@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
-	"sort"
 	"time"
 )
 
@@ -95,8 +93,8 @@ func (s *Solution) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-const PopulationSize = 7
-const NumPops = 3
+const PopulationSize = 5
+const NumPops = 2
 
 func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
@@ -112,9 +110,6 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 			timePerStep := time.Duration(int(time.Since(loopStart)) / i)
 			timeLeft := timeLimit - time.Since(start)
 			if timeLeft <= timePerStep {
-				log.Println("steps:", i)
-				log.Println("time per step:", timePerStep)
-				log.Println("fatigue:", firstSolution.Fatigue, "->", bestSolution.Fatigue)
 				break
 			}
 		}
@@ -134,15 +129,6 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 				bestSolution = solution
 			}
 			population.Push(solution)
-		}
-
-		if false && i%10000 == 0 {
-			scores := make([]int, 0)
-			for _, p := range population {
-				scores = append(scores, p.value.Fatigue)
-			}
-			sort.Ints(scores)
-			log.Println(scores)
 		}
 	}
 	return bestSolution
