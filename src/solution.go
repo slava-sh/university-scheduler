@@ -87,7 +87,8 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 			elapsed := time.Since(start)
 			timePerStep := time.Duration(int(elapsed) / i)
 			if elapsed+timePerStep >= timeLimit {
-				log.Println("iterations:", i)
+				log.Println("steps:", i)
+				log.Println("time per step:", timePerStep)
 				break
 			}
 		}
