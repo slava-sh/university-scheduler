@@ -29,6 +29,9 @@ func TestSolve_sanity(t *testing.T) {
 			if s.Fatigue < 0 {
 				t.Fatal("negative fatigue")
 			}
+			if s.Fatigue != s.computeFatigue() {
+				t.Fatal("inconsistent fatigue")
+			}
 
 			for day := 1; day <= s.DaysPerWeek; day++ {
 				for class := 1; class <= s.ClassesPerDay; class++ {
