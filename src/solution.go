@@ -94,7 +94,7 @@ func (s *Solution) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-const PopulationSize = 20
+const PopulationSize = 5
 
 func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
