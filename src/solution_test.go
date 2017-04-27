@@ -37,7 +37,7 @@ func TestSolve_sanity(t *testing.T) {
 				for class := 1; class <= s.ClassesPerDay; class++ {
 					numRooms := 0
 					for group := 1; group <= s.NumGroups; group++ {
-						prof := s.GroupSchedule[group][day][class]
+						prof := s.GroupSchedule.Get(group, day, class)
 						if prof != 0 {
 							numRooms++
 						}
@@ -54,11 +54,11 @@ func TestSolve_sanity(t *testing.T) {
 			for day := 1; day <= s.DaysPerWeek; day++ {
 				for class := 1; class <= s.ClassesPerDay; class++ {
 					for group := 1; group <= s.NumGroups; group++ {
-						prof := s.GroupSchedule[group][day][class]
+						prof := s.GroupSchedule.Get(group, day, class)
 						if prof == 0 {
 							continue
 						}
-						if s.ProfSchedule[prof][day][class] != group {
+						if s.ProfSchedule.Get(prof, day, class) != group {
 							t.Fatalf(
 								"GroupSchedule is inconsistent with ProfSchedule "+
 									"on (day=%d, class=%d)", day, class)
@@ -75,7 +75,7 @@ func TestSolve_sanity(t *testing.T) {
 			for day := 1; day <= s.DaysPerWeek; day++ {
 				for class := 1; class <= s.ClassesPerDay; class++ {
 					for group := 1; group <= s.NumGroups; group++ {
-						prof := s.GroupSchedule[group][day][class]
+						prof := s.GroupSchedule.Get(group, day, class)
 						if prof == 0 {
 							continue
 						}
