@@ -93,7 +93,7 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 			}
 		}
 		other := neighbor(best)
-		if other.Fatigue > best.Fatigue {
+		if other.Fatigue <= best.Fatigue {
 			best = other
 		}
 	}
