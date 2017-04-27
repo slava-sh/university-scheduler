@@ -80,25 +80,35 @@ func (s *Solution) UpdateFatigue() {
 
 func Solve(p Problem, timeLimit time.Duration) Solution {
 	start := time.Now()
-	best := solveNaive(p)
-	firstFatigue := best.Fatigue
+	currentSolution := solveNaive(p)
+	bestSolution := currentSolution
+	firstFatigue := currentSolution.Fatigue
 	stepStart := time.Now()
 	for i := 0; ; i++ {
+		timeLeft := timeLimit - time.Since(start)
 		if i != 0 {
 			timePerStep := time.Duration(int(time.Since(stepStart)) / i)
-			if time.Since(start)+timePerStep >= timeLimit {
+			if timeLeft <= timePerStep {
 				log.Println("steps:", i)
 				log.Println("time per step:", timePerStep)
-				log.Println("fatigue:", firstFatigue, "->", best.Fatigue)
+				log.Println("fatigue:", firstFatigue, "->", bestSolution.Fatigue)
 				break
 			}
 		}
-		other := neighbor(best)
-		if other.Fatigue <= best.Fatigue {
-			best = other
+		nextSolution := neighbor(currentSolution)
+		delta := nextSolution.Fatigue - currentSolution.Fatigue
+		if shouldAccept(delta, timeLimit) {
+			currentSolution = nextSolution
+			if currentSolution.Fatigue < bestSolution.Fatigue {
+				bestSolution = currentSolution
+			}
 		}
 	}
-	return best
+	return bestSolution
+}
+
+func shouldAccept(delta int, _ time.Duration) bool {
+	return delta <= 0
 }
 
 func neighbor(s Solution) Solution {
