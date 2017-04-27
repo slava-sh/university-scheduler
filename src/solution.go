@@ -99,10 +99,10 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 	solution := solveNaive(p)
 	bestSolution := solution
 	firstFatigue := solution.Fatigue
-	stepStart := time.Now()
+	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
-			timePerStep := time.Duration(int(time.Since(stepStart)) / i)
+			timePerStep := time.Duration(int(time.Since(loopStart)) / i)
 			timeLeft := timeLimit - time.Since(start)
 			if timeLeft <= timePerStep {
 				log.Println("steps:", i)
@@ -111,7 +111,7 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 				break
 			}
 		}
-		newSolution := neighbor(solution)
+		newSolution := randomNeighbor(solution)
 		delta := newSolution.Fatigue - solution.Fatigue
 		if shouldAccept(delta) {
 			solution = newSolution
@@ -127,7 +127,7 @@ func shouldAccept(delta int) bool {
 	return delta <= 0
 }
 
-func neighbor(s Solution) Solution {
+func randomNeighbor(s Solution) Solution {
 	s = s.Copy()
 	for try := 0; try < 100; try++ {
 		d1 := 1 + rand.Intn(s.DaysPerWeek)
