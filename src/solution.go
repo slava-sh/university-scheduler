@@ -46,31 +46,41 @@ func (s *Solution) UpdateFatigue() {
 	for day := 1; day <= s.DaysPerWeek; day++ {
 		for group := 1; group <= s.NumGroups; group++ {
 			maxClass := 0
-			minClass := s.ClassesPerDay
-			for class := 1; class <= s.ClassesPerDay; class++ {
-				if s.GroupSchedule[group][day][class] == 0 {
-					continue
+			for class := s.ClassesPerDay; class > 0; class-- {
+				if s.GroupSchedule[group][day][class] != 0 {
+					maxClass = class
+					break
 				}
-				minClass = min(minClass, class)
-				maxClass = max(maxClass, class)
 			}
 			if maxClass == 0 {
 				continue
+			}
+			minClass := 0
+			for class := 1; class <= s.ClassesPerDay; class++ {
+				if s.GroupSchedule[group][day][class] != 0 {
+					minClass = class
+					break
+				}
 			}
 			fatigue += square(2 + maxClass - minClass + 1)
 		}
 		for prof := 1; prof <= s.NumProfs; prof++ {
 			maxClass := 0
-			minClass := s.ClassesPerDay
-			for class := 1; class <= s.ClassesPerDay; class++ {
-				if s.ProfSchedule[prof][day][class] == 0 {
-					continue
+			for class := s.ClassesPerDay; class > 0; class-- {
+				if s.ProfSchedule[prof][day][class] != 0 {
+					maxClass = class
+					break
 				}
-				minClass = min(minClass, class)
-				maxClass = max(maxClass, class)
 			}
 			if maxClass == 0 {
 				continue
+			}
+			minClass := 0
+			for class := 1; class <= s.ClassesPerDay; class++ {
+				if s.ProfSchedule[prof][day][class] != 0 {
+					minClass = class
+					break
+				}
 			}
 			fatigue += square(2 + maxClass - minClass + 1)
 		}
@@ -85,9 +95,9 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 	firstFatigue := solution.Fatigue
 	stepStart := time.Now()
 	for i := 0; ; i++ {
-		timeLeft := timeLimit - time.Since(start)
 		if i != 0 {
 			timePerStep := time.Duration(int(time.Since(stepStart)) / i)
+			timeLeft := timeLimit - time.Since(start)
 			if timeLeft <= timePerStep {
 				log.Println("steps:", i)
 				log.Println("time per step:", timePerStep)
@@ -97,7 +107,7 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 		}
 		newSolution := neighbor(solution)
 		delta := newSolution.Fatigue - solution.Fatigue
-		if shouldAccept(delta, timeLimit) {
+		if shouldAccept(delta) {
 			solution = newSolution
 			if solution.Fatigue < bestSolution.Fatigue {
 				bestSolution = solution
@@ -107,7 +117,7 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 	return bestSolution
 }
 
-func shouldAccept(delta int, _ time.Duration) bool {
+func shouldAccept(delta int) bool {
 	return delta <= 0
 }
 
