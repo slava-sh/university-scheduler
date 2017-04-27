@@ -2,4 +2,4 @@
 
 mkdir -p out
 (cd src && go build -o ../out/main)
-./out/main <"$1"
+/usr/bin/time ./out/main <"$1"

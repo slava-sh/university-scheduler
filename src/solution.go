@@ -79,16 +79,17 @@ func (s *Solution) UpdateFatigue() {
 }
 
 func Solve(p Problem, timeLimit time.Duration) Solution {
+	start := time.Now()
 	best := solveNaive(p)
 	firstFatigue := best.Fatigue
-	start := time.Now()
+	stepStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
-			elapsed := time.Since(start)
-			timePerStep := time.Duration(int(elapsed) / i)
-			if elapsed+timePerStep >= timeLimit {
+			timePerStep := time.Duration(int(time.Since(stepStart)) / i)
+			if time.Since(start)+timePerStep >= timeLimit {
 				log.Println("steps:", i)
 				log.Println("time per step:", timePerStep)
+				log.Println("fatigue:", firstFatigue, "->", best.Fatigue)
 				break
 			}
 		}
@@ -97,7 +98,6 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 			best = other
 		}
 	}
-	log.Println("fatigue:", firstFatigue, "->", best.Fatigue)
 	return best
 }
 
@@ -110,19 +110,20 @@ func neighbor(s Solution) Solution {
 		c2 := 1 + rand.Intn(s.ClassesPerDay)
 		p := 1 + rand.Intn(s.NumProfs)
 		g := s.ProfSchedule[p][d1][c1]
-		if g != 0 &&
-			s.ProfSchedule[p][d2][c2] == 0 &&
-			s.GroupSchedule[g][d2][c2] == 0 &&
-			s.NumFreeRooms[d2][c2] != 0 {
-			s.NumFreeRooms[d1][c1]++
-			s.NumFreeRooms[d2][c2]--
-			s.GroupSchedule[g][d1][c1] = 0
-			s.GroupSchedule[g][d2][c2] = p
-			s.ProfSchedule[p][d1][c1] = 0
-			s.ProfSchedule[p][d2][c2] = g
-			s.UpdateFatigue()
-			break
+		if g == 0 ||
+			s.NumFreeRooms[d2][c2] == 0 ||
+			s.ProfSchedule[p][d2][c2] != 0 ||
+			s.GroupSchedule[g][d2][c2] != 0 {
+			continue
 		}
+		s.NumFreeRooms[d1][c1]++
+		s.NumFreeRooms[d2][c2]--
+		s.GroupSchedule[g][d1][c1] = 0
+		s.GroupSchedule[g][d2][c2] = p
+		s.ProfSchedule[p][d1][c1] = 0
+		s.ProfSchedule[p][d2][c2] = g
+		s.UpdateFatigue()
+		break
 	}
 	return s
 }
@@ -177,62 +178,4 @@ func solveNaive(p Problem) Solution {
 
 	s.UpdateFatigue()
 	return s
-}
-
-func makeInts2(size1, size2 int) [][]int {
-	result := make([][]int, size1)
-	for i := 0; i < size1; i++ {
-		result[i] = make([]int, size2)
-	}
-	return result
-}
-
-func makeInts3(size1, size2, size3 int) [][][]int {
-	result := make([][][]int, size1)
-	for i := 0; i < size1; i++ {
-		result[i] = makeInts2(size2, size3)
-	}
-	return result
-}
-
-func copyInts(a []int) []int {
-	copy := make([]int, len(a))
-	for i := 0; i < len(a); i++ {
-		copy[i] = a[i]
-	}
-	return copy
-}
-
-func copyInts2(a [][]int) [][]int {
-	copy := make([][]int, len(a))
-	for i := 0; i < len(a); i++ {
-		copy[i] = copyInts(a[i])
-	}
-	return copy
-}
-
-func copyInts3(a [][][]int) [][][]int {
-	copy := make([][][]int, len(a))
-	for i := 0; i < len(a); i++ {
-		copy[i] = copyInts2(a[i])
-	}
-	return copy
-}
-
-func square(x int) int {
-	return x * x
-}
-
-func min(a, b int) int {
-	if b < a {
-		return b
-	}
-	return a
-}
-
-func max(a, b int) int {
-	if b > a {
-		return b
-	}
-	return a
 }
