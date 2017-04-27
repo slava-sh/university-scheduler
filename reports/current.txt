@@ -1,0 +1,57 @@
+$ ./test.sh
+=== RUN   TestRandomSet
+--- PASS: TestRandomSet (0.00s)
+=== RUN   TestSolve_sanity
+=== RUN   TestSolve_sanity/input/01.txt
+2017/04/27 21:17:23 steps: 13047
+2017/04/27 21:17:23 time per step: 22.989µs
+2017/04/27 21:17:23 fatigue: 54 -> 54
+=== RUN   TestSolve_sanity/input/02.txt
+2017/04/27 21:17:23 steps: 21570
+2017/04/27 21:17:23 time per step: 13.904µs
+2017/04/27 21:17:23 fatigue: 52 -> 52
+=== RUN   TestSolve_sanity/input/03.txt
+2017/04/27 21:17:23 steps: 18778
+2017/04/27 21:17:23 time per step: 15.941µs
+2017/04/27 21:17:23 fatigue: 2273 -> 1504
+=== RUN   TestSolve_sanity/input/04.txt
+2017/04/27 21:17:24 steps: 13491
+2017/04/27 21:17:24 time per step: 21.674µs
+2017/04/27 21:17:24 fatigue: 29072 -> 19049
+=== RUN   TestSolve_sanity/input/05.txt
+2017/04/27 21:17:24 steps: 13930
+2017/04/27 21:17:24 time per step: 20.903µs
+2017/04/27 21:17:24 fatigue: 23591 -> 15602
+=== RUN   TestSolve_sanity/input/06.txt
+2017/04/27 21:17:24 steps: 15973
+2017/04/27 21:17:24 time per step: 18.527µs
+2017/04/27 21:17:24 fatigue: 10793 -> 7260
+=== RUN   TestSolve_sanity/input/07.txt
+2017/04/27 21:17:25 steps: 16237
+2017/04/27 21:17:25 time per step: 18.375µs
+2017/04/27 21:17:25 fatigue: 4297 -> 2492
+=== RUN   TestSolve_sanity/input/08.txt
+2017/04/27 21:17:25 steps: 17277
+2017/04/27 21:17:25 time per step: 17.281µs
+2017/04/27 21:17:25 fatigue: 4478 -> 3000
+=== RUN   TestSolve_sanity/input/09.txt
+2017/04/27 21:17:25 steps: 14509
+2017/04/27 21:17:25 time per step: 20.335µs
+2017/04/27 21:17:25 fatigue: 10974 -> 7432
+=== RUN   TestSolve_sanity/input/10.txt
+2017/04/27 21:17:26 steps: 13901
+2017/04/27 21:17:26 time per step: 21.39µs
+2017/04/27 21:17:26 fatigue: 7117 -> 4756
+--- PASS: TestSolve_sanity (3.08s)
+    --- PASS: TestSolve_sanity/input/01.txt (0.30s)
+    --- PASS: TestSolve_sanity/input/02.txt (0.31s)
+    --- PASS: TestSolve_sanity/input/03.txt (0.31s)
+    --- PASS: TestSolve_sanity/input/04.txt (0.31s)
+    --- PASS: TestSolve_sanity/input/05.txt (0.31s)
+    --- PASS: TestSolve_sanity/input/06.txt (0.31s)
+    --- PASS: TestSolve_sanity/input/07.txt (0.30s)
+    --- PASS: TestSolve_sanity/input/08.txt (0.31s)
+    --- PASS: TestSolve_sanity/input/09.txt (0.31s)
+    --- PASS: TestSolve_sanity/input/10.txt (0.31s)
+PASS
+ok  	_/Users/slava/Code/codeforces.ru/2017-vkcup/wildcard-2-timetable/src	3.089s

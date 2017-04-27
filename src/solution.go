@@ -9,7 +9,7 @@ import (
 )
 
 type Solution struct {
-	Problem
+	*Problem
 	Fatigue       int
 	GroupSchedule Treap   // (group, day, class) -> prof
 	ProfSchedule  Treap   // (prof, day, class) -> group
@@ -94,11 +94,16 @@ func (s *Solution) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-func Solve(p Problem, timeLimit time.Duration) Solution {
+const PopulationSize = 10
+
+func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
-	solution := solveNaive(p)
-	bestSolution := solution
-	firstFatigue := solution.Fatigue
+	firstSolution := solveNaive(p)
+	bestSolution := firstSolution
+	population := MakeRandomSet()
+	for i := 0; i < PopulationSize; i++ {
+		population.Push(firstSolution)
+	}
 	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
@@ -107,28 +112,29 @@ func Solve(p Problem, timeLimit time.Duration) Solution {
 			if timeLeft <= timePerStep {
 				log.Println("steps:", i)
 				log.Println("time per step:", timePerStep)
-				log.Println("fatigue:", firstFatigue, "->", bestSolution.Fatigue)
+				log.Println("fatigue:", firstSolution.Fatigue, "->", bestSolution.Fatigue)
 				break
 			}
 		}
-		newSolution := randomNeighbor(solution)
-		delta := newSolution.Fatigue - solution.Fatigue
-		if shouldAccept(delta) {
-			solution = newSolution
-			if solution.Fatigue < bestSolution.Fatigue {
-				bestSolution = solution
-			}
+		a := population.Pop()
+		b := population.Pop()
+		betterSolution := a
+		if b.Fatigue < a.Fatigue {
+			betterSolution = b
 		}
+		population.Push(betterSolution)
+		newSolution := randomNeighbor(betterSolution)
+		if newSolution.Fatigue < bestSolution.Fatigue {
+			bestSolution = newSolution
+		}
+		population.Push(newSolution)
 	}
 	return bestSolution
 }
 
-func shouldAccept(delta int) bool {
-	return delta <= 0
-}
-
-func randomNeighbor(s Solution) Solution {
-	s = s.Copy()
+func randomNeighbor(s *Solution) *Solution {
+	copy := s.Copy()
+	s = &copy
 	for try := 0; try < 100; try++ {
 		d1 := 1 + rand.Intn(s.DaysPerWeek)
 		d2 := 1 + rand.Intn(s.DaysPerWeek)
@@ -163,9 +169,9 @@ func randomNeighbor(s Solution) Solution {
 	return s
 }
 
-func solveNaive(p Problem) Solution {
+func solveNaive(p Problem) *Solution {
 	var s Solution
-	s.Problem = p
+	s.Problem = &p
 	s.NumFreeRooms = makeInts2(p.DaysPerWeek+1, p.ClassesPerDay+1)
 
 	type GroupAndProf struct {
@@ -210,5 +216,5 @@ func solveNaive(p Problem) Solution {
 	}
 
 	s.Fatigue = s.computeFatigue()
-	return s
+	return &s
 }
