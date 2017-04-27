@@ -41,51 +41,59 @@ func (s *Solution) Print(out io.Writer) {
 	}
 }
 
-func (s *Solution) UpdateFatigue() {
+func (s *Solution) computeFatigue() int {
 	fatigue := 0
 	for day := 1; day <= s.DaysPerWeek; day++ {
 		for group := 1; group <= s.NumGroups; group++ {
-			maxClass := 0
-			for class := s.ClassesPerDay; class > 0; class-- {
-				if s.GroupSchedule[group][day][class] != 0 {
-					maxClass = class
-					break
-				}
-			}
-			if maxClass == 0 {
-				continue
-			}
-			minClass := 0
-			for class := 1; class <= s.ClassesPerDay; class++ {
-				if s.GroupSchedule[group][day][class] != 0 {
-					minClass = class
-					break
-				}
-			}
-			fatigue += square(2 + maxClass - minClass + 1)
+			fatigue += s.groupFatigue(group, day)
 		}
 		for prof := 1; prof <= s.NumProfs; prof++ {
-			maxClass := 0
-			for class := s.ClassesPerDay; class > 0; class-- {
-				if s.ProfSchedule[prof][day][class] != 0 {
-					maxClass = class
-					break
-				}
-			}
-			if maxClass == 0 {
-				continue
-			}
-			minClass := 0
-			for class := 1; class <= s.ClassesPerDay; class++ {
-				if s.ProfSchedule[prof][day][class] != 0 {
-					minClass = class
-					break
-				}
-			}
-			fatigue += square(2 + maxClass - minClass + 1)
+			fatigue += s.profFatigue(prof, day)
 		}
 	}
-	s.Fatigue = fatigue
+	return fatigue
+}
+
+func (s *Solution) groupFatigue(group, day int) int {
+	maxClass := 0
+	for class := s.ClassesPerDay; class > 0; class-- {
+		if s.GroupSchedule[group][day][class] != 0 {
+			maxClass = class
+			break
+		}
+	}
+	if maxClass == 0 {
+		return 0
+	}
+	minClass := 0
+	for class := 1; class <= s.ClassesPerDay; class++ {
+		if s.GroupSchedule[group][day][class] != 0 {
+			minClass = class
+			break
+		}
+	}
+	return square(2 + maxClass - minClass + 1)
+}
+
+func (s *Solution) profFatigue(prof, day int) int {
+	maxClass := 0
+	for class := s.ClassesPerDay; class > 0; class-- {
+		if s.ProfSchedule[prof][day][class] != 0 {
+			maxClass = class
+			break
+		}
+	}
+	if maxClass == 0 {
+		return 0
+	}
+	minClass := 0
+	for class := 1; class <= s.ClassesPerDay; class++ {
+		if s.ProfSchedule[prof][day][class] != 0 {
+			minClass = class
+			break
+		}
+	}
+	return square(2 + maxClass - minClass + 1)
 }
 
 func Solve(p Problem, timeLimit time.Duration) Solution {
@@ -136,13 +144,24 @@ func neighbor(s Solution) Solution {
 			s.GroupSchedule[g][d2][c2] != 0 {
 			continue
 		}
+		s.Fatigue -= s.groupFatigue(g, d1)
+		s.Fatigue -= s.profFatigue(p, d1)
+		if d2 != d1 {
+			s.Fatigue -= s.groupFatigue(g, d2)
+			s.Fatigue -= s.profFatigue(p, d2)
+		}
 		s.NumFreeRooms[d1][c1]++
 		s.NumFreeRooms[d2][c2]--
 		s.GroupSchedule[g][d1][c1] = 0
 		s.GroupSchedule[g][d2][c2] = p
 		s.ProfSchedule[p][d1][c1] = 0
 		s.ProfSchedule[p][d2][c2] = g
-		s.UpdateFatigue()
+		s.Fatigue += s.groupFatigue(g, d1)
+		s.Fatigue += s.profFatigue(p, d1)
+		if d2 != d1 {
+			s.Fatigue += s.groupFatigue(g, d2)
+			s.Fatigue += s.profFatigue(p, d2)
+		}
 		break
 	}
 	return s
@@ -196,6 +215,6 @@ func solveNaive(p Problem) Solution {
 		}
 	}
 
-	s.UpdateFatigue()
+	s.Fatigue = s.computeFatigue()
 	return s
 }
