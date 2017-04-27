@@ -93,7 +93,7 @@ func (s *Solution) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-const PopulationSize = 7
+const PopulationSize = 3
 const NumPops = 2
 
 func Solve(p Problem, timeLimit time.Duration) *Solution {
