@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const timeLimit = 10*time.Second - 100*time.Millisecond
+const timeLimit = 60 * time.Second
 
 func main() {
 	start := time.Now()
