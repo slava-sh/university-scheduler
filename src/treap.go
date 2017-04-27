@@ -77,11 +77,19 @@ func split3(node *node, key key3) (left, middle, right *node) {
 }
 
 func (t Treap) Get(a, b, c int) int {
-	_, middle, _ := split3(t.root, key3{a, b, c})
-	if middle == nil {
+	key := key3{a, b, c}
+	node := t.root
+	for node != nil && node.key != key {
+		if cmp(node.key, key) < 0 {
+			node = node.right
+		} else {
+			node = node.left
+		}
+	}
+	if node == nil {
 		return 0
 	}
-	return middle.value
+	return node.value
 }
 
 func (t Treap) Set(a, b, c, value int) Treap {
