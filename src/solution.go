@@ -96,12 +96,9 @@ func randomNeighbor(s *Solution) *Solution {
 	copy := s.Copy()
 	s = &copy
 	for try := 0; try < 100; try++ {
-		d1 := 1 + rand.Intn(s.DaysPerWeek)
+		p, d1, c1, g := s.ProfSchedule.GetRandom()
 		d2 := 1 + rand.Intn(s.DaysPerWeek)
-		c1 := 1 + rand.Intn(s.ClassesPerDay)
 		c2 := 1 + rand.Intn(s.ClassesPerDay)
-		p := 1 + rand.Intn(s.NumProfs)
-		g := s.ProfSchedule.Get(p, d1, c1)
 		if g == 0 ||
 			s.NumFreeRooms[d2][c2] == 0 ||
 			s.ProfSchedule.Get(p, d2, c2) != 0 ||

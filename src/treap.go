@@ -19,6 +19,7 @@ type node struct {
 	maxC     int
 	value    int
 	priority int
+	size     int
 	left     *node
 	right    *node
 }
@@ -29,6 +30,7 @@ func newNode(key key3, value int) *node {
 		minC:     key.c,
 		maxC:     key.c,
 		value:    value,
+		size:     1,
 		priority: rand.Int(),
 	}
 }
@@ -46,13 +48,16 @@ func (n *node) update() {
 	if n == nil {
 		return
 	}
+	n.size = 1
 	n.minC = n.key.c
 	n.maxC = n.key.c
 	if n.left != nil {
+		n.size += n.left.size
 		n.minC = min(n.minC, n.left.minC)
 		n.maxC = max(n.maxC, n.left.maxC)
 	}
 	if n.right != nil {
+		n.size += n.right.size
 		n.minC = min(n.minC, n.right.minC)
 		n.maxC = max(n.maxC, n.right.maxC)
 	}
@@ -97,6 +102,28 @@ func split3(node *node, key key3) (left, middle, right *node) {
 	left, right = split2(node, prevKey)
 	middle, right = split2(right, key)
 	return
+}
+
+func (t Treap) GetRandom() (a, b, c, value int) {
+	node := t.root
+	if node == nil {
+		return
+	}
+	for {
+		leftSize := 0
+		if node.left != nil {
+			leftSize = node.left.size
+		}
+		next := rand.Intn(node.size)
+		if next < leftSize {
+			node = node.left
+		} else if next == leftSize {
+			break
+		} else {
+			node = node.right
+		}
+	}
+	return node.key.a, node.key.b, node.key.c, node.value
 }
 
 func (t Treap) Get(a, b, c int) int {

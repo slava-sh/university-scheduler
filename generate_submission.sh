@@ -2,7 +2,7 @@
 
 if [[ $(git status --porcelain) ]]; then
   echo 'Please commit all changes'
-  exit 1
+  echo
 fi
 
 PACKAGE='github.com/slava-sh/university-scheduler'
