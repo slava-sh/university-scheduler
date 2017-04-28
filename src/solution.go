@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"time"
 )
 
 type Solution struct {
@@ -80,20 +79,11 @@ func (s *State) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-func Solve(p *Problem, timeLimit time.Duration) *Solution {
-	start := time.Now()
+func Solve(p *Problem, shouldWork func() bool) *Solution {
 	s := solveNaive(p)
 	bestSolution := s.Solution
 	s.createEdges()
-	loopStart := time.Now()
-	for i := 0; ; i++ {
-		if i != 0 {
-			timePerStep := time.Duration(int(time.Since(loopStart)) / i)
-			timeLeft := timeLimit - time.Since(start)
-			if timeLeft <= timePerStep {
-				break
-			}
-		}
+	for i := 0; shouldWork(); i++ {
 		for try := 0; try < 10; try++ {
 			// Generate a swap.
 			g, p, d1, c1 := s.Edges.Pop()
