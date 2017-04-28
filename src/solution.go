@@ -10,15 +10,17 @@ import (
 type Solution struct {
 	*Problem
 	Fatigue       int
-	GroupSchedule Treap   // (group, day, class) -> prof
-	ProfSchedule  Treap   // (prof, day, class) -> group
-	NumFreeRooms  [][]int // [day][class] -> numFreeRooms
+	GroupSchedule Treap3 // (group, day, class) -> prof
+	ProfSchedule  Treap3 // (prof, day, class) -> group
+	NumFreeRooms  Treap2 // (day, class) -> numFreeRooms
 }
 
-func (s *Solution) Copy() Solution {
-	var copy Solution
-	copy = *s
-	copy.NumFreeRooms = copyInts2(s.NumFreeRooms)
+func (s *Solution) Copy() *Solution {
+	if s == nil {
+		return nil
+	}
+	copy := new(Solution)
+	*copy = *s
 	return copy
 }
 
@@ -119,8 +121,7 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 }
 
 func randomNeighbor(s *Solution) *Solution {
-	copy := s.Copy()
-	s = &copy
+	s = s.Copy()
 	for try := 0; try < 100; try++ {
 		d1 := 1 + rand.Intn(s.DaysPerWeek)
 		d2 := 1 + rand.Intn(s.DaysPerWeek)
@@ -129,7 +130,7 @@ func randomNeighbor(s *Solution) *Solution {
 		p := 1 + rand.Intn(s.NumProfs)
 		g := s.ProfSchedule.Get(p, d1, c1)
 		if g == 0 ||
-			s.NumFreeRooms[d2][c2] == 0 ||
+			s.NumFreeRooms.Get(d2, c2) == 0 ||
 			s.ProfSchedule.Get(p, d2, c2) != 0 ||
 			s.GroupSchedule.Get(g, d2, c2) != 0 {
 			continue
@@ -140,8 +141,8 @@ func randomNeighbor(s *Solution) *Solution {
 			s.Fatigue -= s.groupFatigue(g, d2)
 			s.Fatigue -= s.profFatigue(p, d2)
 		}
-		s.NumFreeRooms[d1][c1]++
-		s.NumFreeRooms[d2][c2]--
+		s.NumFreeRooms = s.NumFreeRooms.Inc(d1, c1)
+		s.NumFreeRooms = s.NumFreeRooms.Dec(d2, c2)
 		s.GroupSchedule = s.GroupSchedule.Remove(g, d1, c1).Set(g, d2, c2, p)
 		s.ProfSchedule = s.ProfSchedule.Remove(p, d1, c1).Set(p, d2, c2, g)
 		s.Fatigue += s.groupFatigue(g, d1)
@@ -158,7 +159,6 @@ func randomNeighbor(s *Solution) *Solution {
 func solveNaive(p Problem) *Solution {
 	var s Solution
 	s.Problem = &p
-	s.NumFreeRooms = makeInts2(p.DaysPerWeek+1, p.ClassesPerDay+1)
 
 	type GroupAndProf struct {
 		Group int
@@ -176,7 +176,7 @@ func solveNaive(p Problem) *Solution {
 	}
 	for day := 1; day <= s.DaysPerWeek; day++ {
 		for class := 1; class <= s.ClassesPerDay; class++ {
-			s.NumFreeRooms[day][class] = s.NumRooms
+			s.NumFreeRooms = s.NumFreeRooms.Set(day, class, s.NumRooms)
 			groupIsBusy := make(map[int]bool)
 			profIsBusy := make(map[int]bool)
 			for groupAndProf := range classesToSchedule {
@@ -185,10 +185,10 @@ func solveNaive(p Problem) *Solution {
 				if profIsBusy[prof] || groupIsBusy[group] {
 					continue
 				}
-				if s.NumFreeRooms[day][class] == 0 {
+				if s.NumFreeRooms.Get(day, class) == 0 {
 					break
 				}
-				s.NumFreeRooms[day][class]--
+				s.NumFreeRooms = s.NumFreeRooms.Dec(day, class)
 				classesToSchedule[groupAndProf]--
 				if classesToSchedule[groupAndProf] == 0 {
 					delete(classesToSchedule, groupAndProf)

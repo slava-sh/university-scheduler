@@ -2,7 +2,7 @@
 
 if [[ $(git status --porcelain) ]]; then
   echo 'Please commit all changes'
-  exit 1
+  echo
 fi
 
 COMMIT=$(git rev-parse --short HEAD)
