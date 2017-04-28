@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	timeLimit    = 10*time.Second - 100*time.Millisecond
+	timeLimit    = 10*time.Second - 60*time.Millisecond
 	local        = true
 	runsPerInput = 5
 )
