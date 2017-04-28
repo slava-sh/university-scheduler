@@ -95,8 +95,8 @@ func (s *Solution) profFatigue(prof, day int) int {
 
 func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
-	solution := solveNaive(p)
-	bestSolution := solution
+	s := solveNaive(p)
+	bestSolution := s.Copy()
 	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
@@ -106,66 +106,84 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 				break
 			}
 		}
-		newSolution := randomNeighbor(solution)
-		delta := newSolution.Fatigue - solution.Fatigue
-		if delta <= 0 {
-			solution = newSolution
-			if solution.Fatigue < bestSolution.Fatigue {
-				bestSolution = solution
+		for try := 0; try < 100; try++ {
+			// Generate swap.
+			d1 := 1 + rand.Intn(s.DaysPerWeek)
+			d2 := 1 + rand.Intn(s.DaysPerWeek)
+			c1 := 1 + rand.Intn(s.ClassesPerDay)
+			c2 := 1 + rand.Intn(s.ClassesPerDay)
+			p := 1 + rand.Intn(s.NumProfs)
+			g := s.ProfSchedule.Get(p, d1, c1)
+			if g == 0 ||
+				s.NumFreeRooms[d2][c2] == 0 ||
+				s.ProfSchedule.Get(p, d2, c2) != 0 ||
+				s.GroupSchedule.Get(g, d2, c2) != 0 {
+				continue
 			}
+			if 0 < c1 && c1 < s.ClassesPerDay {
+				groupWillHaveEmptySlot :=
+					s.GroupSchedule.Get(g, d1, c1-1) != 0 &&
+						s.GroupSchedule.Get(g, d1, c1+1) != 0
+				if groupWillHaveEmptySlot {
+					continue
+				}
+				profWillHaveEmptySlot :=
+					s.ProfSchedule.Get(p, d1, c1-1) != 0 &&
+						s.ProfSchedule.Get(p, d1, c1+1) != 0
+				if profWillHaveEmptySlot {
+					continue
+				}
+			}
+
+			prevFatigue := s.Fatigue
+
+			// Apply swap.
+			s.Fatigue -= s.groupFatigue(g, d1)
+			s.Fatigue -= s.profFatigue(p, d1)
+			if d2 != d1 {
+				s.Fatigue -= s.groupFatigue(g, d2)
+				s.Fatigue -= s.profFatigue(p, d2)
+			}
+			s.NumFreeRooms[d1][c1]++
+			s.NumFreeRooms[d2][c2]--
+			s.GroupSchedule = s.GroupSchedule.Remove(g, d1, c1).Set(g, d2, c2, p)
+			s.ProfSchedule = s.ProfSchedule.Remove(p, d1, c1).Set(p, d2, c2, g)
+			s.Fatigue += s.groupFatigue(g, d1)
+			s.Fatigue += s.profFatigue(p, d1)
+			if d2 != d1 {
+				s.Fatigue += s.groupFatigue(g, d2)
+				s.Fatigue += s.profFatigue(p, d2)
+			}
+
+			if s.Fatigue <= prevFatigue {
+				// Accept swap.
+				if s.Fatigue < bestSolution.Fatigue {
+					bestSolution = s.Copy()
+				}
+			} else {
+				// Discard swap.
+				s.Fatigue -= s.groupFatigue(g, d1)
+				s.Fatigue -= s.profFatigue(p, d1)
+				if d2 != d1 {
+					s.Fatigue -= s.groupFatigue(g, d2)
+					s.Fatigue -= s.profFatigue(p, d2)
+				}
+				s.NumFreeRooms[d1][c1]--
+				s.NumFreeRooms[d2][c2]++
+				s.GroupSchedule = s.GroupSchedule.Remove(g, d2, c2).Set(g, d1, c1, p)
+				s.ProfSchedule = s.ProfSchedule.Remove(p, d2, c2).Set(p, d1, c1, g)
+				s.Fatigue += s.groupFatigue(g, d1)
+				s.Fatigue += s.profFatigue(p, d1)
+				if d2 != d1 {
+					s.Fatigue += s.groupFatigue(g, d2)
+					s.Fatigue += s.profFatigue(p, d2)
+				}
+			}
+
+			break
 		}
 	}
 	return bestSolution
-}
-
-func randomNeighbor(s *Solution) *Solution {
-	s = s.Copy()
-	for try := 0; try < 100; try++ {
-		d1 := 1 + rand.Intn(s.DaysPerWeek)
-		d2 := 1 + rand.Intn(s.DaysPerWeek)
-		c1 := 1 + rand.Intn(s.ClassesPerDay)
-		c2 := 1 + rand.Intn(s.ClassesPerDay)
-		p := 1 + rand.Intn(s.NumProfs)
-		g := s.ProfSchedule.Get(p, d1, c1)
-		if g == 0 ||
-			s.NumFreeRooms[d2][c2] == 0 ||
-			s.ProfSchedule.Get(p, d2, c2) != 0 ||
-			s.GroupSchedule.Get(g, d2, c2) != 0 {
-			continue
-		}
-		if 0 < c1 && c1 < s.ClassesPerDay {
-			groupWillHaveEmptySlot :=
-				s.GroupSchedule.Get(g, d1, c1-1) != 0 &&
-					s.GroupSchedule.Get(g, d1, c1+1) != 0
-			if groupWillHaveEmptySlot {
-				continue
-			}
-			profWillHaveEmptySlot :=
-				s.ProfSchedule.Get(p, d1, c1-1) != 0 &&
-					s.ProfSchedule.Get(p, d1, c1+1) != 0
-			if profWillHaveEmptySlot {
-				continue
-			}
-		}
-		s.Fatigue -= s.groupFatigue(g, d1)
-		s.Fatigue -= s.profFatigue(p, d1)
-		if d2 != d1 {
-			s.Fatigue -= s.groupFatigue(g, d2)
-			s.Fatigue -= s.profFatigue(p, d2)
-		}
-		s.NumFreeRooms[d1][c1]++
-		s.NumFreeRooms[d2][c2]--
-		s.GroupSchedule = s.GroupSchedule.Remove(g, d1, c1).Set(g, d2, c2, p)
-		s.ProfSchedule = s.ProfSchedule.Remove(p, d1, c1).Set(p, d2, c2, g)
-		s.Fatigue += s.groupFatigue(g, d1)
-		s.Fatigue += s.profFatigue(p, d1)
-		if d2 != d1 {
-			s.Fatigue += s.groupFatigue(g, d2)
-			s.Fatigue += s.profFatigue(p, d2)
-		}
-		break
-	}
-	return s
 }
 
 func solveNaive(p Problem) *Solution {
