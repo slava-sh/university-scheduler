@@ -4,10 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
-
-const solveTimeLimit = 300 * time.Millisecond
 
 func TestSolve_sanity(t *testing.T) {
 	filenames, err := filepath.Glob("../input/*.txt")
@@ -22,7 +19,7 @@ func TestSolve_sanity(t *testing.T) {
 			}
 
 			problem := ReadProblem(NewFastReader(in))
-			s := Solve(problem, solveTimeLimit)
+			s := solveSteps(problem, 1000)
 
 			if s.Fatigue < 0 {
 				t.Fatal("negative fatigue")
@@ -85,7 +82,13 @@ func BenchmarkSolve(b *testing.B) {
 	}
 	problem := ReadProblem(NewFastReader(in))
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		Solve(problem, solveTimeLimit)
-	}
+	solveSteps(problem, b.N)
+}
+
+func solveSteps(p *Problem, n int) *Solution {
+	step := 0
+	return Solve(p, func() bool {
+		step++
+		return step < n
+	})
 }
