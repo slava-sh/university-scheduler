@@ -28,8 +28,8 @@ func TestSolve_sanity(t *testing.T) {
 				t.Fatal("negative fatigue")
 			}
 
-			for day := 1; day <= s.DaysPerWeek; day++ {
-				for class := 1; class <= s.ClassesPerDay; class++ {
+			for day := 1; day <= DaysPerWeek; day++ {
+				for class := 1; class <= ClassesPerDay; class++ {
 					numRooms := 0
 					for group := 1; group <= s.NumGroups; group++ {
 						prof := s.GroupSchedule[group][day][class]
@@ -51,8 +51,8 @@ func TestSolve_sanity(t *testing.T) {
 				Prof  int
 			}
 			numClasses := make(map[GP]int)
-			for day := 1; day <= s.DaysPerWeek; day++ {
-				for class := 1; class <= s.ClassesPerDay; class++ {
+			for day := 1; day <= DaysPerWeek; day++ {
+				for class := 1; class <= ClassesPerDay; class++ {
 					for group := 1; group <= s.NumGroups; group++ {
 						prof := s.GroupSchedule[group][day][class]
 						if prof == 0 {

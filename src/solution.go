@@ -10,26 +10,23 @@ import (
 type Solution struct {
 	*Problem
 	Fatigue       int
-	GroupSchedule [][][]int // [group][day][class] -> prof
-	ProfSchedule  [][][]int // [prof][day][class] -> group
-	NumFreeRooms  [][]int   // [day][class] -> numFreeRooms
-	GroupFatigue  [][]int   // [group][day] -> fatigue
-	ProfFatigue   [][]int   // [prof][day] -> fatigue
+	GroupSchedule [MaxGroup + 1][DaysPerWeek + 1][ClassesPerDay + 1]int // [group][day][class] -> prof
 }
 
-func (s *Solution) PartialCopy() *Solution {
-	copy := new(Solution)
-	*copy = *s
-	copy.GroupSchedule = copyInts3(s.GroupSchedule)
-	return copy
+type State struct {
+	Solution
+	ProfSchedule [MaxProf + 1][DaysPerWeek + 1][ClassesPerDay + 1]int // [prof][day][class] -> group
+	NumFreeRooms [DaysPerWeek + 1][ClassesPerDay + 1]int              // [day][class] -> numFreeRooms
+	GroupFatigue [MaxGroup + 1][DaysPerWeek + 1]int                   // [group][day] -> fatigue
+	ProfFatigue  [MaxProf + 1][DaysPerWeek + 1]int                    // [prof][day] -> fatigue
 }
 
 func (s *Solution) Print(out io.Writer) {
 	fmt.Fprintf(out, "%d\n", s.Fatigue)
 	for group := 1; group <= s.NumGroups; group++ {
 		fmt.Fprintf(out, "\n")
-		for class := 1; class <= s.ClassesPerDay; class++ {
-			for day := 1; day <= s.DaysPerWeek; day++ {
+		for class := 1; class <= ClassesPerDay; class++ {
+			for day := 1; day <= DaysPerWeek; day++ {
 				if day != 1 {
 					fmt.Fprintf(out, " ")
 				}
@@ -40,9 +37,9 @@ func (s *Solution) Print(out io.Writer) {
 	}
 }
 
-func (s *Solution) groupFatigue(group, day int) int {
+func (s *State) groupFatigue(group, day int) int {
 	maxClass := 0
-	for class := s.ClassesPerDay; class > 0; class-- {
+	for class := ClassesPerDay; class > 0; class-- {
 		if s.GroupSchedule[group][day][class] != 0 {
 			maxClass = class
 			break
@@ -52,7 +49,7 @@ func (s *Solution) groupFatigue(group, day int) int {
 		return 0
 	}
 	minClass := 0
-	for class := 1; class <= s.ClassesPerDay; class++ {
+	for class := 1; class <= ClassesPerDay; class++ {
 		if s.GroupSchedule[group][day][class] != 0 {
 			minClass = class
 			break
@@ -61,9 +58,9 @@ func (s *Solution) groupFatigue(group, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-func (s *Solution) profFatigue(prof, day int) int {
+func (s *State) profFatigue(prof, day int) int {
 	maxClass := 0
-	for class := s.ClassesPerDay; class > 0; class-- {
+	for class := ClassesPerDay; class > 0; class-- {
 		if s.ProfSchedule[prof][day][class] != 0 {
 			maxClass = class
 			break
@@ -73,7 +70,7 @@ func (s *Solution) profFatigue(prof, day int) int {
 		return 0
 	}
 	minClass := 0
-	for class := 1; class <= s.ClassesPerDay; class++ {
+	for class := 1; class <= ClassesPerDay; class++ {
 		if s.ProfSchedule[prof][day][class] != 0 {
 			minClass = class
 			break
@@ -82,10 +79,10 @@ func (s *Solution) profFatigue(prof, day int) int {
 	return square(2 + maxClass - minClass + 1)
 }
 
-func Solve(p Problem, timeLimit time.Duration) *Solution {
+func Solve(p *Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
 	s := solveNaive(p)
-	bestSolution := s.PartialCopy()
+	bestSolution := s.Solution
 	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
@@ -97,10 +94,10 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 		}
 
 		// Generate swap.
-		d1 := 1 + rand.Intn(s.DaysPerWeek)
-		d2 := 1 + rand.Intn(s.DaysPerWeek)
-		c1 := 1 + rand.Intn(s.ClassesPerDay)
-		c2 := 1 + rand.Intn(s.ClassesPerDay)
+		d1 := 1 + rand.Intn(DaysPerWeek)
+		d2 := 1 + rand.Intn(DaysPerWeek)
+		c1 := 1 + rand.Intn(ClassesPerDay)
+		c2 := 1 + rand.Intn(ClassesPerDay)
 		p := 1 + rand.Intn(s.NumProfs)
 		g := s.ProfSchedule[p][d1][c1]
 		if g == 0 ||
@@ -110,7 +107,7 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 			continue
 		}
 
-		if 0 < c1 && c1 < s.ClassesPerDay {
+		if 0 < c1 && c1 < ClassesPerDay {
 			groupWillHaveEmptySlot :=
 				s.GroupSchedule[g][d1][c1-1] != 0 &&
 					s.GroupSchedule[g][d1][c1+1] != 0
@@ -158,7 +155,7 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 		if s.Fatigue <= prevFatigue {
 			// Accept swap.
 			if s.Fatigue < bestSolution.Fatigue {
-				bestSolution = s.PartialCopy()
+				bestSolution = s.Solution
 			}
 		} else {
 			// Discard swap.
@@ -177,17 +174,12 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 			}
 		}
 	}
-	return bestSolution
+	return &bestSolution
 }
 
-func solveNaive(p Problem) *Solution {
-	var s Solution
-	s.Problem = &p
-	s.GroupSchedule = makeInts3(p.NumGroups+1, p.DaysPerWeek+1, p.ClassesPerDay+1)
-	s.ProfSchedule = makeInts3(p.NumProfs+1, p.DaysPerWeek+1, p.ClassesPerDay+1)
-	s.NumFreeRooms = makeInts2(p.DaysPerWeek+1, p.ClassesPerDay+1)
-	s.GroupFatigue = makeInts2(p.NumGroups+1, p.DaysPerWeek+1)
-	s.ProfFatigue = makeInts2(p.NumProfs+1, p.DaysPerWeek+1)
+func solveNaive(p *Problem) *State {
+	var s State
+	s.Problem = p
 
 	type GroupAndProf struct {
 		Group int
@@ -203,8 +195,8 @@ func solveNaive(p Problem) *Solution {
 			classesToSchedule[groupAndProf] = s.NumClasses[group][prof]
 		}
 	}
-	for day := 1; day <= s.DaysPerWeek; day++ {
-		for class := 1; class <= s.ClassesPerDay; class++ {
+	for day := 1; day <= DaysPerWeek; day++ {
+		for class := 1; class <= ClassesPerDay; class++ {
 			s.NumFreeRooms[day][class] = s.NumRooms
 			groupIsBusy := make(map[int]bool)
 			profIsBusy := make(map[int]bool)
@@ -230,7 +222,7 @@ func solveNaive(p Problem) *Solution {
 		}
 	}
 
-	for day := 1; day <= s.DaysPerWeek; day++ {
+	for day := 1; day <= DaysPerWeek; day++ {
 		for group := 1; group <= s.NumGroups; group++ {
 			s.GroupFatigue[group][day] = s.groupFatigue(group, day)
 			s.Fatigue += s.GroupFatigue[group][day]
