@@ -85,13 +85,15 @@ func Solve(p *Problem, shouldWork func() bool) *Solution {
 		for try := 0; try < 10; try++ {
 			// Generate swap.
 			d1 := 1 + rand.Intn(DaysPerWeek)
-			d2 := 1 + rand.Intn(DaysPerWeek)
 			c1 := 1 + rand.Intn(ClassesPerDay)
-			c2 := 1 + rand.Intn(ClassesPerDay)
 			p := 1 + rand.Intn(s.NumProfs)
 			g := s.ProfSchedule[p][d1][c1]
-			if g == 0 ||
-				s.NumFreeRooms[d2][c2] == 0 ||
+			if g == 0 {
+				continue
+			}
+			d2 := 1 + rand.Intn(DaysPerWeek)
+			c2 := 1 + rand.Intn(ClassesPerDay)
+			if s.NumFreeRooms[d2][c2] == 0 ||
 				s.ProfSchedule[p][d2][c2] != 0 ||
 				s.GroupSchedule[g][d2][c2] != 0 {
 				continue
