@@ -108,85 +108,83 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 				break
 			}
 		}
-		for try := 0; try < 100; try++ {
-			// Generate swap.
-			d1 := 1 + rand.Intn(s.DaysPerWeek)
-			d2 := 1 + rand.Intn(s.DaysPerWeek)
-			c1 := 1 + rand.Intn(s.ClassesPerDay)
-			c2 := 1 + rand.Intn(s.ClassesPerDay)
-			p := 1 + rand.Intn(s.NumProfs)
-			g := s.ProfSchedule[p][d1][c1]
-			if g == 0 ||
-				s.NumFreeRooms[d2][c2] == 0 ||
-				s.ProfSchedule[p][d2][c2] != 0 ||
-				s.GroupSchedule[g][d2][c2] != 0 {
+
+		// Generate swap.
+		d1 := 1 + rand.Intn(s.DaysPerWeek)
+		d2 := 1 + rand.Intn(s.DaysPerWeek)
+		c1 := 1 + rand.Intn(s.ClassesPerDay)
+		c2 := 1 + rand.Intn(s.ClassesPerDay)
+		p := 1 + rand.Intn(s.NumProfs)
+		g := s.ProfSchedule[p][d1][c1]
+		if g == 0 ||
+			s.NumFreeRooms[d2][c2] == 0 ||
+			s.ProfSchedule[p][d2][c2] != 0 ||
+			s.GroupSchedule[g][d2][c2] != 0 {
+			continue
+		}
+
+		if 0 < c1 && c1 < s.ClassesPerDay {
+			groupWillHaveEmptySlot :=
+				s.GroupSchedule[g][d1][c1-1] != 0 &&
+					s.GroupSchedule[g][d1][c1+1] != 0
+			if groupWillHaveEmptySlot {
 				continue
 			}
-			if 0 < c1 && c1 < s.ClassesPerDay {
-				groupWillHaveEmptySlot :=
-					s.GroupSchedule[g][d1][c1-1] != 0 &&
-						s.GroupSchedule[g][d1][c1+1] != 0
-				if groupWillHaveEmptySlot {
-					continue
-				}
-				profWillHaveEmptySlot :=
-					s.ProfSchedule[p][d1][c1-1] != 0 &&
-						s.ProfSchedule[p][d1][c1+1] != 0
-				if profWillHaveEmptySlot {
-					continue
-				}
+			profWillHaveEmptySlot :=
+				s.ProfSchedule[p][d1][c1-1] != 0 &&
+					s.ProfSchedule[p][d1][c1+1] != 0
+			if profWillHaveEmptySlot {
+				continue
 			}
+		}
 
-			prevFatigue := s.Fatigue
+		prevFatigue := s.Fatigue
 
-			// Apply swap.
+		// Apply swap.
+		s.Fatigue -= s.groupFatigue(g, d1)
+		s.Fatigue -= s.profFatigue(p, d1)
+		if d2 != d1 {
+			s.Fatigue -= s.groupFatigue(g, d2)
+			s.Fatigue -= s.profFatigue(p, d2)
+		}
+		s.NumFreeRooms[d1][c1]++
+		s.NumFreeRooms[d2][c2]--
+		s.GroupSchedule[g][d1][c1] = 0
+		s.GroupSchedule[g][d2][c2] = p
+		s.ProfSchedule[p][d1][c1] = 0
+		s.ProfSchedule[p][d2][c2] = g
+		s.Fatigue += s.groupFatigue(g, d1)
+		s.Fatigue += s.profFatigue(p, d1)
+		if d2 != d1 {
+			s.Fatigue += s.groupFatigue(g, d2)
+			s.Fatigue += s.profFatigue(p, d2)
+		}
+
+		if s.Fatigue <= prevFatigue {
+			// Accept swap.
+			if s.Fatigue < bestSolution.Fatigue {
+				bestSolution = s.Copy()
+			}
+		} else {
+			// Discard swap.
 			s.Fatigue -= s.groupFatigue(g, d1)
 			s.Fatigue -= s.profFatigue(p, d1)
 			if d2 != d1 {
 				s.Fatigue -= s.groupFatigue(g, d2)
 				s.Fatigue -= s.profFatigue(p, d2)
 			}
-			s.NumFreeRooms[d1][c1]++
-			s.NumFreeRooms[d2][c2]--
-			s.GroupSchedule[g][d1][c1] = 0
-			s.GroupSchedule[g][d2][c2] = p
-			s.ProfSchedule[p][d1][c1] = 0
-			s.ProfSchedule[p][d2][c2] = g
+			s.NumFreeRooms[d1][c1]--
+			s.NumFreeRooms[d2][c2]++
+			s.GroupSchedule[g][d2][c2] = 0
+			s.GroupSchedule[g][d1][c1] = p
+			s.ProfSchedule[p][d2][c2] = 0
+			s.ProfSchedule[p][d1][c1] = g
 			s.Fatigue += s.groupFatigue(g, d1)
 			s.Fatigue += s.profFatigue(p, d1)
 			if d2 != d1 {
 				s.Fatigue += s.groupFatigue(g, d2)
 				s.Fatigue += s.profFatigue(p, d2)
 			}
-
-			if s.Fatigue <= prevFatigue {
-				// Accept swap.
-				if s.Fatigue < bestSolution.Fatigue {
-					bestSolution = s.Copy()
-				}
-			} else {
-				// Discard swap.
-				s.Fatigue -= s.groupFatigue(g, d1)
-				s.Fatigue -= s.profFatigue(p, d1)
-				if d2 != d1 {
-					s.Fatigue -= s.groupFatigue(g, d2)
-					s.Fatigue -= s.profFatigue(p, d2)
-				}
-				s.NumFreeRooms[d1][c1]--
-				s.NumFreeRooms[d2][c2]++
-				s.GroupSchedule[g][d2][c2] = 0
-				s.GroupSchedule[g][d1][c1] = p
-				s.ProfSchedule[p][d2][c2] = 0
-				s.ProfSchedule[p][d1][c1] = g
-				s.Fatigue += s.groupFatigue(g, d1)
-				s.Fatigue += s.profFatigue(p, d1)
-				if d2 != d1 {
-					s.Fatigue += s.groupFatigue(g, d2)
-					s.Fatigue += s.profFatigue(p, d2)
-				}
-			}
-
-			break
 		}
 	}
 	return bestSolution
