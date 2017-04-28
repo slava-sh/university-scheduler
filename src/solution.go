@@ -13,6 +13,8 @@ type Solution struct {
 	GroupSchedule [][][]int // [group][day][class] -> prof
 	ProfSchedule  [][][]int // [prof][day][class] -> group
 	NumFreeRooms  [][]int   // [day][class] -> numFreeRooms
+	GroupFatigue  [][]int   // [group][day] -> fatigue
+	ProfFatigue   [][]int   // [prof][day] -> fatigue
 }
 
 func (s *Solution) PartialCopy() *Solution {
@@ -36,19 +38,6 @@ func (s *Solution) Print(out io.Writer) {
 			fmt.Fprintf(out, "\n")
 		}
 	}
-}
-
-func (s *Solution) computeFatigue() int {
-	fatigue := 0
-	for day := 1; day <= s.DaysPerWeek; day++ {
-		for group := 1; group <= s.NumGroups; group++ {
-			fatigue += s.groupFatigue(group, day)
-		}
-		for prof := 1; prof <= s.NumProfs; prof++ {
-			fatigue += s.profFatigue(prof, day)
-		}
-	}
-	return fatigue
 }
 
 func (s *Solution) groupFatigue(group, day int) int {
@@ -137,13 +126,17 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 		}
 
 		prevFatigue := s.Fatigue
+		prevGroupFatigue1 := s.GroupFatigue[g][d1]
+		prevGroupFatigue2 := s.GroupFatigue[g][d2]
+		prevProfFatigue1 := s.ProfFatigue[p][d1]
+		prevProfFatigue2 := s.ProfFatigue[p][d2]
 
 		// Apply swap.
-		s.Fatigue -= s.groupFatigue(g, d1)
-		s.Fatigue -= s.profFatigue(p, d1)
+		s.Fatigue -= s.GroupFatigue[g][d1]
+		s.Fatigue -= s.ProfFatigue[p][d1]
 		if d2 != d1 {
-			s.Fatigue -= s.groupFatigue(g, d2)
-			s.Fatigue -= s.profFatigue(p, d2)
+			s.Fatigue -= s.GroupFatigue[g][d2]
+			s.Fatigue -= s.ProfFatigue[p][d2]
 		}
 		s.NumFreeRooms[d1][c1]++
 		s.NumFreeRooms[d2][c2]--
@@ -151,11 +144,15 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 		s.GroupSchedule[g][d2][c2] = p
 		s.ProfSchedule[p][d1][c1] = 0
 		s.ProfSchedule[p][d2][c2] = g
-		s.Fatigue += s.groupFatigue(g, d1)
-		s.Fatigue += s.profFatigue(p, d1)
+		s.GroupFatigue[g][d1] = s.groupFatigue(g, d1)
+		s.ProfFatigue[p][d1] = s.profFatigue(p, d1)
+		s.Fatigue += s.GroupFatigue[g][d1]
+		s.Fatigue += s.ProfFatigue[p][d1]
 		if d2 != d1 {
-			s.Fatigue += s.groupFatigue(g, d2)
-			s.Fatigue += s.profFatigue(p, d2)
+			s.GroupFatigue[g][d2] = s.groupFatigue(g, d2)
+			s.ProfFatigue[p][d2] = s.profFatigue(p, d2)
+			s.Fatigue += s.GroupFatigue[g][d2]
+			s.Fatigue += s.ProfFatigue[p][d2]
 		}
 
 		if s.Fatigue <= prevFatigue {
@@ -165,23 +162,18 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 			}
 		} else {
 			// Discard swap.
-			s.Fatigue -= s.groupFatigue(g, d1)
-			s.Fatigue -= s.profFatigue(p, d1)
-			if d2 != d1 {
-				s.Fatigue -= s.groupFatigue(g, d2)
-				s.Fatigue -= s.profFatigue(p, d2)
-			}
 			s.NumFreeRooms[d1][c1]--
 			s.NumFreeRooms[d2][c2]++
 			s.GroupSchedule[g][d2][c2] = 0
 			s.GroupSchedule[g][d1][c1] = p
 			s.ProfSchedule[p][d2][c2] = 0
 			s.ProfSchedule[p][d1][c1] = g
-			s.Fatigue += s.groupFatigue(g, d1)
-			s.Fatigue += s.profFatigue(p, d1)
+			s.Fatigue = prevFatigue
+			s.GroupFatigue[g][d1] = prevGroupFatigue1
+			s.ProfFatigue[p][d1] = prevProfFatigue1
 			if d2 != d1 {
-				s.Fatigue += s.groupFatigue(g, d2)
-				s.Fatigue += s.profFatigue(p, d2)
+				s.GroupFatigue[g][d2] = prevGroupFatigue2
+				s.ProfFatigue[p][d2] = prevProfFatigue2
 			}
 		}
 	}
@@ -194,6 +186,8 @@ func solveNaive(p Problem) *Solution {
 	s.GroupSchedule = makeInts3(p.NumGroups+1, p.DaysPerWeek+1, p.ClassesPerDay+1)
 	s.ProfSchedule = makeInts3(p.NumProfs+1, p.DaysPerWeek+1, p.ClassesPerDay+1)
 	s.NumFreeRooms = makeInts2(p.DaysPerWeek+1, p.ClassesPerDay+1)
+	s.GroupFatigue = makeInts2(p.NumGroups+1, p.DaysPerWeek+1)
+	s.ProfFatigue = makeInts2(p.NumProfs+1, p.DaysPerWeek+1)
 
 	type GroupAndProf struct {
 		Group int
@@ -236,6 +230,15 @@ func solveNaive(p Problem) *Solution {
 		}
 	}
 
-	s.Fatigue = s.computeFatigue()
+	for day := 1; day <= s.DaysPerWeek; day++ {
+		for group := 1; group <= s.NumGroups; group++ {
+			s.GroupFatigue[group][day] = s.groupFatigue(group, day)
+			s.Fatigue += s.GroupFatigue[group][day]
+		}
+		for prof := 1; prof <= s.NumProfs; prof++ {
+			s.ProfFatigue[prof][day] = s.profFatigue(prof, day)
+			s.Fatigue += s.ProfFatigue[prof][day]
+		}
+	}
 	return &s
 }

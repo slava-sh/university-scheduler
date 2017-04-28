@@ -27,9 +27,6 @@ func TestSolve_sanity(t *testing.T) {
 			if s.Fatigue < 0 {
 				t.Fatal("negative fatigue")
 			}
-			if s.Fatigue != s.computeFatigue() {
-				t.Fatal("inconsistent fatigue")
-			}
 
 			for day := 1; day <= s.DaysPerWeek; day++ {
 				for class := 1; class <= s.ClassesPerDay; class++ {
@@ -45,22 +42,6 @@ func TestSolve_sanity(t *testing.T) {
 							"too many rooms occupied on (day=%d, class=%d)",
 							day, class,
 						)
-					}
-				}
-			}
-
-			for day := 1; day <= s.DaysPerWeek; day++ {
-				for class := 1; class <= s.ClassesPerDay; class++ {
-					for group := 1; group <= s.NumGroups; group++ {
-						prof := s.GroupSchedule[group][day][class]
-						if prof == 0 {
-							continue
-						}
-						if s.ProfSchedule[prof][day][class] != group {
-							t.Fatalf(
-								"GroupSchedule is inconsistent with ProfSchedule "+
-									"on (day=%d, class=%d)", day, class)
-						}
 					}
 				}
 			}
