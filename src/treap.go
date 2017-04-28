@@ -104,6 +104,12 @@ func (t Treap) Set(a, b, c, value int) Treap {
 	return Treap{merge(left, merge(middle, right))}
 }
 
+func (t Treap) Remove(a, b, c int) Treap {
+	key := key3{a, b, c}
+	left, _, right := split3(t.root, key)
+	return Treap{merge(left, right)}
+}
+
 func cmp(x, y key3) int {
 	if x.a != y.a {
 		return x.a - y.a
