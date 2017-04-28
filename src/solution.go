@@ -19,6 +19,7 @@ type State struct {
 	NumFreeRooms [DaysPerWeek + 1][ClassesPerDay + 1]int              // [day][class] -> numFreeRooms
 	GroupFatigue [MaxGroup + 1][DaysPerWeek + 1]int                   // [group][day] -> fatigue
 	ProfFatigue  [MaxProf + 1][DaysPerWeek + 1]int                    // [prof][day] -> fatigue
+	Edges        *EdgeSet
 }
 
 func (s *Solution) Print(out io.Writer) {
@@ -83,6 +84,7 @@ func Solve(p *Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
 	s := solveNaive(p)
 	bestSolution := s.Solution
+	s.createEdges()
 	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
@@ -93,33 +95,15 @@ func Solve(p *Problem, timeLimit time.Duration) *Solution {
 			}
 		}
 		for try := 0; try < 10; try++ {
-			// Generate swap.
-			d1 := 1 + rand.Intn(DaysPerWeek)
+			// Generate a swap.
+			g, p, d1, c1 := s.Edges.Pop()
 			d2 := 1 + rand.Intn(DaysPerWeek)
-			c1 := 1 + rand.Intn(ClassesPerDay)
 			c2 := 1 + rand.Intn(ClassesPerDay)
-			p := 1 + rand.Intn(s.NumProfs)
-			g := s.ProfSchedule[p][d1][c1]
-			if g == 0 ||
-				s.NumFreeRooms[d2][c2] == 0 ||
+			if s.NumFreeRooms[d2][c2] == 0 ||
 				s.ProfSchedule[p][d2][c2] != 0 ||
 				s.GroupSchedule[g][d2][c2] != 0 {
+				s.Edges.Push(g, p, d1, c1)
 				continue
-			}
-
-			if 0 < c1 && c1 < ClassesPerDay {
-				groupWillHaveEmptySlot :=
-					s.GroupSchedule[g][d1][c1-1] != 0 &&
-						s.GroupSchedule[g][d1][c1+1] != 0
-				if groupWillHaveEmptySlot {
-					continue
-				}
-				profWillHaveEmptySlot :=
-					s.ProfSchedule[p][d1][c1-1] != 0 &&
-						s.ProfSchedule[p][d1][c1+1] != 0
-				if profWillHaveEmptySlot {
-					continue
-				}
 			}
 
 			prevFatigue := s.Fatigue
@@ -157,6 +141,53 @@ func Solve(p *Problem, timeLimit time.Duration) *Solution {
 				if s.Fatigue < bestSolution.Fatigue {
 					bestSolution = s.Solution
 				}
+
+				// Update edges.
+				for _, delta := range []int{-1, 1} {
+					newClass := c1 + delta
+					if !(1 <= newClass && newClass <= ClassesPerDay) {
+						continue
+					}
+					if s.isEdgeForGroup(g, d1, newClass) {
+						newProf := s.GroupSchedule[g][d1][newClass]
+						if newProf != 0 && s.isEdgeForProf(newProf, d1, newClass) {
+							s.Edges.Push(g, newProf, d1, newClass)
+						}
+					}
+					if s.isEdgeForProf(p, d1, newClass) {
+						newGroup := s.ProfSchedule[p][d1][newClass]
+						if newGroup != 0 && s.isEdgeForGroup(newGroup, d1, newClass) {
+							s.Edges.Push(newGroup, p, d1, newClass)
+						}
+					}
+				}
+				if s.isEdgeForGroup(g, d2, c2) {
+					if s.isEdgeForProf(p, d2, c2) {
+						s.Edges.Push(g, p, d2, c2)
+					}
+					for _, delta := range []int{-1, 1} {
+						newClass := c2 + delta
+						if 1 <= newClass && newClass <= ClassesPerDay &&
+							!s.isEdgeForGroup(g, d2, newClass) {
+							newProf := s.GroupSchedule[g][d2][newClass]
+							if newProf != 0 {
+								s.Edges.Remove(g, newProf, d2, newClass)
+							}
+						}
+					}
+				}
+				if s.isEdgeForProf(p, d2, c2) {
+					for _, delta := range []int{-1, 1} {
+						newClass := c2 + delta
+						if 1 <= newClass && newClass <= ClassesPerDay &&
+							!s.isEdgeForProf(p, d2, newClass) {
+							newGroup := s.ProfSchedule[p][d2][newClass]
+							if newGroup != 0 {
+								s.Edges.Remove(p, newGroup, d2, newClass)
+							}
+						}
+					}
+				}
 			} else {
 				// Discard swap.
 				s.NumFreeRooms[d1][c1]--
@@ -172,6 +203,7 @@ func Solve(p *Problem, timeLimit time.Duration) *Solution {
 					s.GroupFatigue[g][d2] = prevGroupFatigue2
 					s.ProfFatigue[p][d2] = prevProfFatigue2
 				}
+				s.Edges.Push(g, p, d1, c1)
 			}
 
 			break
@@ -236,4 +268,48 @@ func solveNaive(p *Problem) *State {
 		}
 	}
 	return &s
+}
+
+func (s *State) createEdges() {
+	s.Edges = NewEdgeSet()
+	for group := 1; group <= s.NumGroups; group++ {
+		for day := 1; day <= DaysPerWeek; day++ {
+			for class := 1; class <= ClassesPerDay; class++ {
+				prof := s.GroupSchedule[group][day][class]
+				if prof == 0 {
+					continue
+				}
+				if s.isEdgeForGroup(group, day, class) &&
+					s.isEdgeForProf(prof, day, class) {
+					s.Edges.Push(group, prof, day, class)
+				}
+			}
+		}
+	}
+}
+
+func (s *State) isEdgeForGroup(group, day, class int) bool {
+	if s.GroupSchedule[group][day][class] == 0 {
+		return false
+	}
+	if class > 1 && s.GroupSchedule[group][day][class-1] == 0 {
+		return true
+	}
+	if class < ClassesPerDay && s.GroupSchedule[group][day][class+1] == 0 {
+		return true
+	}
+	return false
+}
+
+func (s *State) isEdgeForProf(prof, day, class int) bool {
+	if s.ProfSchedule[prof][day][class] == 0 {
+		return false
+	}
+	if class > 1 && s.ProfSchedule[prof][day][class-1] == 0 {
+		return true
+	}
+	if class < ClassesPerDay && s.ProfSchedule[prof][day][class+1] == 0 {
+		return true
+	}
+	return false
 }

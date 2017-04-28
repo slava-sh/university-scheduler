@@ -46,11 +46,7 @@ func TestSolve_sanity(t *testing.T) {
 				}
 			}
 
-			type GP struct {
-				Group int
-				Prof  int
-			}
-			numClasses := make(map[GP]int)
+			var numClasses [MaxGroup + 1][MaxProf + 1]int
 			for day := 1; day <= DaysPerWeek; day++ {
 				for class := 1; class <= ClassesPerDay; class++ {
 					for group := 1; group <= s.NumGroups; group++ {
@@ -58,14 +54,14 @@ func TestSolve_sanity(t *testing.T) {
 						if prof == 0 {
 							continue
 						}
-						numClasses[GP{group, prof}]++
+						numClasses[group][prof]++
 					}
 				}
 			}
 			for group := 1; group <= s.NumGroups; group++ {
 				for prof := 1; prof <= s.NumProfs; prof++ {
 					expected := s.NumClasses[group][prof]
-					actual := numClasses[GP{group, prof}]
+					actual := numClasses[group][prof]
 					if actual != expected {
 						t.Fatalf(
 							"expected %d classes for (group=%d, prof=%d), got %d",
