@@ -149,6 +149,20 @@ func randomNeighbor(s *Solution) *Solution {
 			s.GroupSchedule.Get(g, d2, c2) != 0 {
 			continue
 		}
+		if 0 < c1 && c1 < s.ClassesPerDay {
+			groupWillHaveEmptySlot :=
+				s.GroupSchedule.Get(g, d1, c1-1) != 0 &&
+					s.GroupSchedule.Get(g, d1, c1+1) != 0
+			if groupWillHaveEmptySlot {
+				continue
+			}
+			profWillHaveEmptySlot :=
+				s.ProfSchedule.Get(p, d1, c1-1) != 0 &&
+					s.ProfSchedule.Get(p, d1, c1+1) != 0
+			if profWillHaveEmptySlot {
+				continue
+			}
+		}
 		s.Fatigue -= s.groupFatigue(g, d1)
 		s.Fatigue -= s.profFatigue(p, d1)
 		if d2 != d1 {
