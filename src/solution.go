@@ -15,12 +15,10 @@ type Solution struct {
 	NumFreeRooms  [][]int   // [day][class] -> numFreeRooms
 }
 
-func (s *Solution) Copy() *Solution {
+func (s *Solution) PartialCopy() *Solution {
 	copy := new(Solution)
 	*copy = *s
 	copy.GroupSchedule = copyInts3(s.GroupSchedule)
-	copy.ProfSchedule = copyInts3(s.ProfSchedule)
-	copy.NumFreeRooms = copyInts2(s.NumFreeRooms)
 	return copy
 }
 
@@ -98,7 +96,7 @@ func (s *Solution) profFatigue(prof, day int) int {
 func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
 	s := solveNaive(p)
-	bestSolution := s.Copy()
+	bestSolution := s.PartialCopy()
 	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
@@ -163,7 +161,7 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 		if s.Fatigue <= prevFatigue {
 			// Accept swap.
 			if s.Fatigue < bestSolution.Fatigue {
-				bestSolution = s.Copy()
+				bestSolution = s.PartialCopy()
 			}
 		} else {
 			// Discard swap.
