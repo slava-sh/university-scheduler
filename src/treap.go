@@ -15,6 +15,8 @@ type key3 struct {
 
 type node struct {
 	key      key3
+	minC     int
+	maxC     int
 	value    int
 	priority int
 	left     *node
@@ -24,6 +26,8 @@ type node struct {
 func newNode(key key3, value int) *node {
 	return &node{
 		key:      key,
+		minC:     key.c,
+		maxC:     key.c,
 		value:    value,
 		priority: rand.Int(),
 	}
@@ -36,6 +40,22 @@ func (n *node) copy() *node {
 	copy := new(node)
 	*copy = *n
 	return copy
+}
+
+func (n *node) update() {
+	if n == nil {
+		return
+	}
+	n.minC = n.key.c
+	n.maxC = n.key.c
+	if n.left != nil {
+		n.minC = min(n.minC, n.left.minC)
+		n.maxC = max(n.maxC, n.left.maxC)
+	}
+	if n.right != nil {
+		n.minC = min(n.minC, n.right.minC)
+		n.maxC = max(n.maxC, n.right.maxC)
+	}
 }
 
 func merge(left, right *node) (result *node) {
@@ -52,6 +72,7 @@ func merge(left, right *node) (result *node) {
 		result = right.copy()
 		result.left = merge(left, result.left)
 	}
+	result.update()
 	return
 }
 
@@ -62,9 +83,11 @@ func split2(node *node, key key3) (left *node, right *node) {
 	if cmp(node.key, key) <= 0 {
 		left = node.copy()
 		left.right, right = split2(node.right, key)
+		left.update()
 	} else {
 		right = node.copy()
 		left, right.left = split2(node.left, key)
+		right.update()
 	}
 	return
 }
@@ -108,6 +131,18 @@ func (t Treap) Remove(a, b, c int) Treap {
 	key := key3{a, b, c}
 	left, _, right := split3(t.root, key)
 	return Treap{merge(left, right)}
+}
+
+func (t Treap) GetBounds3(a, b int) (minC int, maxC int) {
+	const inf = 1e9
+	prevKey := key3{a, b - 1, +inf}
+	nextKey := key3{a, b + 1, -inf}
+	middle, _ := split2(t.root, nextKey)
+	_, middle = split2(middle, prevKey)
+	if middle == nil {
+		return
+	}
+	return middle.minC, middle.maxC
 }
 
 func cmp(x, y key3) int {

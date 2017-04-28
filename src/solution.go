@@ -52,43 +52,17 @@ func (s *Solution) computeFatigue() int {
 }
 
 func (s *Solution) groupFatigue(group, day int) int {
-	maxClass := 0
-	for class := s.ClassesPerDay; class > 0; class-- {
-		if s.GroupSchedule.Get(group, day, class) != 0 {
-			maxClass = class
-			break
-		}
-	}
+	minClass, maxClass := s.GroupSchedule.GetBounds3(group, day)
 	if maxClass == 0 {
 		return 0
-	}
-	minClass := 0
-	for class := 1; class <= s.ClassesPerDay; class++ {
-		if s.GroupSchedule.Get(group, day, class) != 0 {
-			minClass = class
-			break
-		}
 	}
 	return square(2 + maxClass - minClass + 1)
 }
 
 func (s *Solution) profFatigue(prof, day int) int {
-	maxClass := 0
-	for class := s.ClassesPerDay; class > 0; class-- {
-		if s.ProfSchedule.Get(prof, day, class) != 0 {
-			maxClass = class
-			break
-		}
-	}
+	minClass, maxClass := s.ProfSchedule.GetBounds3(prof, day)
 	if maxClass == 0 {
 		return 0
-	}
-	minClass := 0
-	for class := 1; class <= s.ClassesPerDay; class++ {
-		if s.ProfSchedule.Get(prof, day, class) != 0 {
-			minClass = class
-			break
-		}
 	}
 	return square(2 + maxClass - minClass + 1)
 }
