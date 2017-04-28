@@ -107,7 +107,7 @@ func Solve(p *Problem, timeLimit time.Duration) *Solution {
 				continue
 			}
 
-			if 0 < c1 && c1 < ClassesPerDay {
+			if 1 < c1 && c1 < ClassesPerDay {
 				groupWillHaveEmptySlot :=
 					s.GroupSchedule[g][d1][c1-1] != 0 &&
 						s.GroupSchedule[g][d1][c1+1] != 0
