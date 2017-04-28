@@ -81,16 +81,40 @@ func (s *State) profFatigue(prof, day int) int {
 func Solve(p *Problem, shouldWork func() bool) *Solution {
 	s := solveNaive(p)
 	bestSolution := s.Solution
+
+	type Class struct {
+		Group int
+		Prof  int
+		Day   int
+		Class int
+	}
+	classes := make(map[Class]bool)
+	randomClass := func() Class {
+		for class := range classes {
+			// XXX: Relies on the implementation of map iteration.
+			return class
+		}
+		panic("impossible")
+	}
+	for group := 1; group <= s.NumGroups; group++ {
+		for day := 1; day <= DaysPerWeek; day++ {
+			for class := 1; class <= ClassesPerDay; class++ {
+				prof := s.GroupSchedule[group][day][class]
+				if prof != 0 {
+					classes[Class{group, prof, day, class}] = true
+				}
+			}
+		}
+	}
+
 	for i := 0; shouldWork(); i++ {
 		for try := 0; try < 10; try++ {
 			// Generate swap.
-			d1 := 1 + rand.Intn(DaysPerWeek)
-			c1 := 1 + rand.Intn(ClassesPerDay)
-			p := 1 + rand.Intn(s.NumProfs)
-			g := s.ProfSchedule[p][d1][c1]
-			if g == 0 {
-				continue
-			}
+			class := randomClass()
+			d1 := class.Day
+			c1 := class.Class
+			p := class.Prof
+			g := class.Group
 			d2 := 1 + rand.Intn(DaysPerWeek)
 			c2 := 1 + rand.Intn(ClassesPerDay)
 			if s.NumFreeRooms[d2][c2] == 0 ||
@@ -146,6 +170,8 @@ func Solve(p *Problem, shouldWork func() bool) *Solution {
 
 			if s.Fatigue <= prevFatigue {
 				// Accept swap.
+				delete(classes, class)
+				classes[Class{g, p, d2, c2}] = true
 				if s.Fatigue < bestSolution.Fatigue {
 					bestSolution = s.Solution
 				}
