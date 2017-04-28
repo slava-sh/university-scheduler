@@ -158,8 +158,8 @@ func randomNeighbor(s *Solution) *Solution {
 		}
 		s.NumFreeRooms[d1][c1]++
 		s.NumFreeRooms[d2][c2]--
-		s.GroupSchedule = s.GroupSchedule.Set(g, d1, c1, 0).Set(g, d2, c2, p)
-		s.ProfSchedule = s.ProfSchedule.Set(p, d1, c1, 0).Set(p, d2, c2, g)
+		s.GroupSchedule = s.GroupSchedule.Remove(g, d1, c1).Set(g, d2, c2, p)
+		s.ProfSchedule = s.ProfSchedule.Remove(p, d1, c1).Set(p, d2, c2, g)
 		s.Fatigue += s.groupFatigue(g, d1)
 		s.Fatigue += s.profFatigue(p, d1)
 		if d2 != d1 {
