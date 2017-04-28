@@ -117,25 +117,28 @@ std::unique_ptr<State> SolveNaive(const std::shared_ptr<Problem> problem) {
             state->NumFreeRooms[day][time] = problem->NumRooms;
             std::vector<bool> groupIsBusy(problem->NumGroups + 1);
             std::vector<bool> profIsBusy(problem->NumProfs + 1);
-            for (auto& kv : classesToSchedule) {
-                if (kv.second == 0) {
-                    continue;
-                }
-                auto& groupAndProf = kv.first;
+            for (auto it = classesToSchedule.begin(); it != classesToSchedule.end();) {
+                auto& groupAndProf = it->first;
                 auto& group = groupAndProf.first;
                 auto& prof = groupAndProf.second;
                 if (groupIsBusy[group] || profIsBusy[prof]) {
+                    ++it;
                     continue;
                 }
                 if (state->NumFreeRooms[day][time] == 0) {
                     break;
                 }
-                state->NumFreeRooms[day][time]--;
-                kv.second--;
                 state->GroupSchedule[group][day][time] = prof;
                 state->ProfSchedule[prof][day][time] = group;
                 groupIsBusy[group] = true;
                 profIsBusy[prof] = true;
+                state->NumFreeRooms[day][time]--;
+                it->second--;
+                if (it->second == 0) {
+                    it = classesToSchedule.erase(it);
+                } else {
+                    ++it;
+                }
             }
         }
     }
