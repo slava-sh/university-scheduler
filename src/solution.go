@@ -15,9 +15,9 @@ type Solution struct {
 	NumFreeRooms  [][]int // [day][class] -> numFreeRooms
 }
 
-func (s *Solution) Copy() Solution {
-	var copy Solution
-	copy = *s
+func (s *Solution) Copy() *Solution {
+	copy := new(Solution)
+	*copy = *s
 	copy.NumFreeRooms = copyInts2(s.NumFreeRooms)
 	return copy
 }
@@ -135,8 +135,7 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 }
 
 func randomNeighbor(s *Solution) *Solution {
-	copy := s.Copy()
-	s = &copy
+	s = s.Copy()
 	for try := 0; try < 100; try++ {
 		d1 := 1 + rand.Intn(s.DaysPerWeek)
 		d2 := 1 + rand.Intn(s.DaysPerWeek)
