@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -165,9 +167,20 @@ int Random(int n) {
 std::unique_ptr<Solution> Solve(const std::shared_ptr<Problem> problem) {
     typedef std::chrono::steady_clock clock;
     auto start = clock::now();
+    std::ofstream log("./out/log.tsv");
+    log << std::fixed << std::setprecision(4);
+    log << "Iteration\tFatigue\n";
     auto state = SolveNaive(problem);
     auto bestSolution = std::make_unique<Solution>(*state);
-    for (int i = 0; clock::now() - start < time_limit; i++) {
+    for (int i = 0; ; i++) {
+        auto elapsed = clock::now() - start;
+        auto time_left = time_limit - elapsed;
+        if (time_left <= clock::duration::zero()) {
+            break;
+        }
+        if (i % 100 == 0) {
+            log << i << "\t" << state->Fatigue << "\n";
+        }
         for (int t = 0; t < 10; t++) {
             // Generate a swap.
             auto d1 = 1 + Random(DaysPerWeek);
@@ -255,6 +268,7 @@ std::unique_ptr<Solution> Solve(const std::shared_ptr<Problem> problem) {
             break;
         }
     }
+    log.close();
     return bestSolution;
 }
 
