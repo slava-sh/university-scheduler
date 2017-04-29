@@ -164,6 +164,22 @@ int Random(int n) {
     return std::rand() % n;
 }
 
+float RandomFloat() {
+    return static_cast<float>(std::rand()) / RAND_MAX;
+}
+
+bool ShouldAccept(fatigue delta, double progress) {
+    if (delta <= 0) {
+        return true;
+    }
+    if (progress < 0.5 || progress > 0.7) {
+        return false;
+    }
+    float temperature = 0.5;
+    auto p = exp(static_cast<float>(-delta) / temperature);
+    return p >= RandomFloat();
+}
+
 std::unique_ptr<Solution> Solve(const std::shared_ptr<Problem> problem) {
     typedef std::chrono::steady_clock clock;
     auto start = clock::now();
