@@ -14,5 +14,5 @@ mkdir -p ./out
   git log --oneline --max-count=5 | awk '{ print "// " $0 }'
   echo '// ...'
   echo
-  cat ./src/main.cpp
+  cat ./scheduler/*.h ./scheduler/*.cpp | grep -v '^#include "scheduler/'
 } >./out/submission.cpp
