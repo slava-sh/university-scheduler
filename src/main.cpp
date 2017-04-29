@@ -18,7 +18,7 @@ const group MaxGroup      = 60;
 const prof MaxProf        = 60;
 const int DaysPerWeek     = 6;
 const int ClassesPerDay   = 7;
-const int attention_times = 1;
+const int attention_times = 3;
 
 struct Problem {
     int NumRooms;
