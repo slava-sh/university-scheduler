@@ -14,10 +14,11 @@ typedef int fatigue;
 typedef int day;
 typedef int class_time;
 
-const group MaxGroup    = 60;
-const prof MaxProf      = 60;
-const int DaysPerWeek   = 6;
-const int ClassesPerDay = 7;
+const group MaxGroup      = 60;
+const prof MaxProf        = 60;
+const int DaysPerWeek     = 6;
+const int ClassesPerDay   = 7;
+const int attention_times = 1;
 
 struct Problem {
     int NumRooms;
@@ -167,12 +168,24 @@ std::unique_ptr<Solution> Solve(const std::shared_ptr<Problem> problem) {
     auto start = clock::now();
     auto state = SolveNaive(problem);
     auto bestSolution = std::make_unique<Solution>(*state);
+    std::vector<std::tuple<prof, day, class_time>> attention;
     for (int i = 0; clock::now() - start < time_limit; i++) {
         for (int t = 0; t < 10; t++) {
             // Generate a swap.
-            auto d1 = 1 + Random(DaysPerWeek);
-            auto c1 = 1 + Random(ClassesPerDay);
-            auto p = 1 + Random(problem->NumProfs);
+            prof p;
+            day d1;
+            class_time c1;
+            if (attention.empty()) {
+                p = 1 + Random(problem->NumProfs);
+                d1 = 1 + Random(DaysPerWeek);
+                c1 = 1 + Random(ClassesPerDay);
+            } else {
+                auto t = attention.back();
+                attention.pop_back();
+                p = std::get<0>(t);
+                d1 = std::get<1>(t);
+                c1 = std::get<2>(t);
+            }
             auto g = state->ProfSchedule[p][d1][c1];
             if (g == 0) {
                 continue;
@@ -234,6 +247,15 @@ std::unique_ptr<Solution> Solve(const std::shared_ptr<Problem> problem) {
                 // Accept swap.
                 if (state->Fatigue < bestSolution->Fatigue) {
                     bestSolution = std::make_unique<Solution>(*state);
+                }
+                for (int dc = -1; dc <= 1; dc += 2) {
+                    int new_c = d1 + dc;
+                    if (1 <= new_c && new_c <= ClassesPerDay &&
+                            state->ProfSchedule[p][d1][new_c] != 0) {
+                        for (int j = 0; j < attention_times; ++j) {
+                            attention.push_back(std::make_tuple(p, d1, new_c));
+                        }
+                    }
                 }
             } else {
                 // Revert swap.
