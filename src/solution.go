@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -99,15 +101,38 @@ const NumPops = 2
 
 func Solve(p Problem, timeLimit time.Duration) *Solution {
 	start := time.Now()
+
 	firstSolution := solveNaive(p)
 	bestSolution := firstSolution
 	population := MakeRandomSet()
 	for i := 0; i < PopulationSize; i++ {
 		population.Push(firstSolution)
 	}
+
+	file, _ := os.Create("./out/log.csv")
+	defer file.Close()
+	csvLog := csv.NewWriter(file)
+	defer csvLog.Flush()
+	csvLog.Write([]string{
+		"TimeNanoseconds",
+		"Iteration",
+		"Fatigue",
+	})
+
 	op := 0
+
 	loopStart := time.Now()
 	for i := 0; ; i++ {
+		if i%100 == 0 {
+			for _, p := range population {
+				csvLog.Write([]string{
+					fmt.Sprintf("%d", time.Since(start).Nanoseconds()),
+					fmt.Sprintf("%d", i),
+					fmt.Sprintf("%d", p.value.Fatigue),
+				})
+			}
+		}
+
 		if i != 0 {
 			timePerStep := time.Duration(int(time.Since(loopStart)) / i)
 			timeLeft := timeLimit - time.Since(start)
