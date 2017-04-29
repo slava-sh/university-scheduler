@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -104,6 +105,7 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 	for i := 0; i < PopulationSize; i++ {
 		population.Push(firstSolution)
 	}
+	op := 0
 	loopStart := time.Now()
 	for i := 0; ; i++ {
 		if i != 0 {
@@ -130,7 +132,9 @@ func Solve(p Problem, timeLimit time.Duration) *Solution {
 			}
 			population.Push(solution)
 		}
+		op++
 	}
+	log.Println("op count:", op)
 	return bestSolution
 }
 
