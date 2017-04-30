@@ -1,7 +1,7 @@
-#include <unordered_map>
-#include <vector>
-#include <utility>
 #include "scheduler/solver.h"
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace scheduler {
 

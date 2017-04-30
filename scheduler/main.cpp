@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
 #include "scheduler/time_limited_solver.h"
 
 int main(int argc, char** argv) {
@@ -8,7 +9,7 @@ int main(int argc, char** argv) {
 
   auto time_limit = std::chrono::seconds(10) - std::chrono::milliseconds(50);
   if (argc > 1 && std::string(argv[1]) == "--fast") {
-      time_limit = std::chrono::milliseconds(300);
+    time_limit = std::chrono::milliseconds(300);
   }
 
   auto problem = std::make_shared<scheduler::Problem>();
