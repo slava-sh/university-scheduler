@@ -9,7 +9,7 @@ int square(int x) { return x * x; }
 
 fatigue_t Solver::PartialFatigue(const int *schedule) {
   class_time_t max_time = 0;
-  for (class_time_t time = kClassesPerDay; time > 0; time--) {
+  for (class_time_t time = kClassesPerDay; time > 0; --time) {
     if (schedule[time] != 0) {
       max_time = time;
       break;
@@ -19,7 +19,7 @@ fatigue_t Solver::PartialFatigue(const int *schedule) {
     return 0;
   }
   class_time_t min_time = 0;
-  for (class_time_t time = 1; time <= kClassesPerDay; time++) {
+  for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
     if (schedule[time] != 0) {
       min_time = time;
       break;
@@ -51,8 +51,8 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> problem) {
 
   std::unordered_map<std::pair<group_t, prof_t>, int, xor_pair_hash>
       classes_to_schedule;
-  for (group_t group = 1; group <= problem->num_groups; group++) {
-    for (prof_t prof = 1; prof <= problem->num_profs; prof++) {
+  for (group_t group = 1; group <= problem->num_groups; ++group) {
+    for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
       if (problem->num_classes[group][prof] == 0) {
         continue;
       }
@@ -60,8 +60,8 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> problem) {
       classes_to_schedule[group_and_prof] = problem->num_classes[group][prof];
     }
   }
-  for (day_t day = 1; day <= kDaysPerWeek; day++) {
-    for (class_time_t time = 1; time <= kClassesPerDay; time++) {
+  for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+    for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
       state.num_free_rooms[day][time] = problem->num_rooms;
       std::vector<bool> group_is_busy(problem->num_groups + 1);
       std::vector<bool> prof_is_busy(problem->num_profs + 1);
@@ -81,8 +81,8 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> problem) {
         state.prof_schedule[prof][day][time] = group;
         group_is_busy[group] = true;
         prof_is_busy[prof] = true;
-        state.num_free_rooms[day][time]--;
-        it->second--;
+        --state.num_free_rooms[day][time];
+        --it->second;
         if (it->second == 0) {
           it = classes_to_schedule.erase(it);
         } else {
@@ -93,12 +93,12 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> problem) {
   }
 
   state.fatigue = 0;
-  for (day_t day = 1; day <= kDaysPerWeek; day++) {
-    for (group_t group = 1; group <= problem->num_groups; group++) {
+  for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+    for (group_t group = 1; group <= problem->num_groups; ++group) {
       state.group_fatigue[group][day] = GroupFatigue(state, group, day);
       state.fatigue += state.group_fatigue[group][day];
     }
-    for (prof_t prof = 1; prof <= problem->num_profs; prof++) {
+    for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
       state.prof_fatigue[prof][day] = ProfFatigue(state, prof, day);
       state.fatigue += state.prof_fatigue[prof][day];
     }
@@ -114,8 +114,8 @@ int Random(int n) {
 Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
   auto state = SolveNaive(problem);
   Solution best_solution(state);
-  for (int i = 0; !ShouldStop(); i++) {
-    for (int t = 0; t < 50; t++) {
+  for (int i = 0; !ShouldStop(); ++i) {
+    for (int t = 0; t < 50; ++t) {
       // Generate a swap.
       auto d1 = 1 + Random(kDaysPerWeek);
       auto c1 = 1 + Random(kClassesPerDay);
@@ -177,8 +177,8 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
 
       if (state.fatigue <= prev_fatigue) {
         // Accept swap.
-        state.num_free_rooms[d1][c1]++;
-        state.num_free_rooms[d2][c2]--;
+        ++state.num_free_rooms[d1][c1];
+        --state.num_free_rooms[d2][c2];
         if (state.fatigue < best_solution.fatigue) {
           best_solution = Solution(state);
         }
