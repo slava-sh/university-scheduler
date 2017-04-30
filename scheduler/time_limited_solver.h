@@ -1,6 +1,7 @@
 #ifndef SCHEDULER_TIME_LIMITED_SOLVER_H_
 #define SCHEDULER_TIME_LIMITED_SOLVER_H_
 
+#include <chrono>
 #include <memory>
 #include "scheduler/solver.h"
 
