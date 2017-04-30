@@ -124,12 +124,43 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
   auto state = SolveNaive(problem);
   Solution best_solution(state);
   int idle_steps = 0;
-  while (!ShouldStop()) {
+  bool ok = false;
+  int step = 1;
+  for (; !ShouldStop(); ++step) {
     if (idle_steps == kMaxIdleSteps) {
       state = SolveNaive(problem);
       idle_steps = 0;
       continue;
     }
+
+    if (!ok && step % 10000 == 0) {
+      bool skip = false;
+      for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+        for (group_t group = 1; group <= problem->num_groups; ++group) {
+          for (class_time_t time = 2; time < kClassesPerDay; ++time) {
+            if (state.group_schedule[group][day][time] == 0 &&
+                state.group_schedule[group][day][time - 1] != 0 &&
+                state.group_schedule[group][day][time + 1] != 0) {
+              skip = true;
+            }
+          }
+        }
+        for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
+          for (class_time_t time = 2; time < kClassesPerDay; ++time) {
+            if (state.prof_schedule[prof][day][time] == 0 &&
+                state.prof_schedule[prof][day][time - 1] != 0 &&
+                state.prof_schedule[prof][day][time + 1] != 0) {
+              skip = true;
+            }
+          }
+        }
+      }
+      if (!skip) {
+        ok = true;
+        std::cerr << "no skips at step=" << step << std::endl;
+      }
+    }
+
     for (int t = 0; t < 50; ++t) {
       // Generate a swap.
       auto d1 = 1 + Random(kDaysPerWeek);
@@ -221,6 +252,7 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       break;
     }
   }
+  std::cerr << "step=" << step << std::endl;
   return best_solution;
 }
 
