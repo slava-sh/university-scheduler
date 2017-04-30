@@ -45,7 +45,7 @@ struct xor_pair_hash {
   }
 };
 
-Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> problem) {
+Solver::State Solver::SolveNaive(const std::shared_ptr<Problem>& problem) {
   State state;
   state.problem = problem;
 
