@@ -221,6 +221,42 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       break;
     }
   }
+
+  for (group_t group = 1; group <= problem->num_groups; ++group) {
+    for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+      int t = 0;
+      for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
+        auto empty = state.group_schedule[group][day][time] == 0;
+        if (t == 0 && !empty) {
+          t = 1;
+        } else if (t == 1 && empty) {
+          t = 2;
+        } else if (t == 2 && !empty) {
+          std::cerr << "group=" << group << " has a skip on day=" << day
+                    << std::endl;
+          break;
+        }
+      }
+    }
+  }
+  for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
+    for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+      int t = 0;
+      for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
+        auto empty = state.prof_schedule[prof][day][time] == 0;
+        if (t == 0 && !empty) {
+          t = 1;
+        } else if (t == 1 && empty) {
+          t = 2;
+        } else if (t == 2 && !empty) {
+          std::cerr << "prof=" << prof << " has a skip on day=" << day
+                    << std::endl;
+          break;
+        }
+      }
+    }
+  }
+
   return best_solution;
 }
 
