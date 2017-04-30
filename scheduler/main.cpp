@@ -12,6 +12,12 @@ int main(int argc, char** argv) {
     time_limit = std::chrono::milliseconds(300);
   }
 
+#ifdef INPUT_FILE
+  std::cerr << "reading from " << INPUT_FILE << std::endl;
+  std::ifstream in(INPUT_FILE);
+  std::cin.rdbuf(in.rdbuf());
+#endif
+
   auto problem = std::make_shared<scheduler::Problem>();
   std::cin >> *problem;
   auto solution = scheduler::TimeLimitedSolver(time_limit).Solve(problem);
