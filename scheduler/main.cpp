@@ -20,6 +20,8 @@ int main(int argc, char** argv) {
 
   auto problem = std::make_shared<scheduler::Problem>();
   std::cin >> *problem;
+
+  std::srand(0);
   auto solution = scheduler::TimeLimitedSolver(time_limit).Solve(problem);
   std::cout << solution;
   return 0;
