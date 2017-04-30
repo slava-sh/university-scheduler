@@ -36,21 +36,30 @@ fatigue_t Solver::ProfFatigue(const State &state, prof_t prof, day_t day) {
   return PartialFatigue(state.prof_schedule[prof][day]);
 }
 
-struct xor_pair_hash {
+namespace {
+
+struct hash {
+  explicit hash(size_t seed) : seed_(seed) {}
+
   template <class T1, class T2>
   std::size_t operator()(const std::pair<T1, T2> &p) const {
     auto h1 = std::hash<T1>()(p.first);
     auto h2 = std::hash<T2>()(p.second);
-    return h1 ^ h2;
+    return h1 ^ h2 ^ seed_;
   }
+
+ private:
+  size_t seed_;
 };
 
-Solver::State Solver::SolveNaive(const std::shared_ptr<Problem>& problem) {
-  State state;
-  state.problem = problem;
+}  // namespace
 
-  std::unordered_map<std::pair<group_t, prof_t>, int, xor_pair_hash>
-      classes_to_schedule;
+Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
+  State state = {};
+  state.problem = problem;
+  auto seed = std::rand();
+  std::unordered_map<std::pair<group_t, prof_t>, int, hash> classes_to_schedule(
+      0, hash(seed));
   for (group_t group = 1; group <= problem->num_groups; ++group) {
     for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
       if (problem->num_classes[group][prof] == 0) {
@@ -114,7 +123,13 @@ int Random(int n) {
 Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
   auto state = SolveNaive(problem);
   Solution best_solution(state);
-  for (int i = 0; !ShouldStop(); ++i) {
+  int idle_steps = 0;
+  while (!ShouldStop()) {
+    if (idle_steps == kMaxIdleSteps) {
+      state = SolveNaive(problem);
+      idle_steps = 0;
+      continue;
+    }
     for (int t = 0; t < 50; ++t) {
       // Generate a swap.
       auto d1 = 1 + Random(kDaysPerWeek);
@@ -195,6 +210,12 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
           state.group_fatigue[g][d2] = prev_group_fatigue2;
           state.prof_fatigue[p][d2] = prev_prof_fatigue2;
         }
+      }
+
+      if (state.fatigue == prev_fatigue) {
+        ++idle_steps;
+      } else {
+        idle_steps = 0;
       }
 
       break;

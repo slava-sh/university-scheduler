@@ -22,6 +22,8 @@ class Solver {
     fatigue_t prof_fatigue[kMaxProf + 1][kDaysPerWeek + 1];
   };
 
+  const int kMaxIdleSteps = 1000000;
+
   State SolveNaive(const std::shared_ptr<Problem>& problem);
   fatigue_t PartialFatigue(const int *schedule);
   fatigue_t GroupFatigue(const State &state, group_t group, day_t day);
