@@ -52,6 +52,16 @@ fatigue_t Solver::State::Day::Fatigue() {
   return square(2 + max_class_ - min_class_ + 1);
 }
 
+bool Solver::State::Day::HasSkips() const {
+  return HasClasses() && max_class_ - min_class_ + 1 == num_classes_;
+}
+
+int Solver::State::Day::GetMinClass() const { return min_class_; }
+
+int Solver::State::Day::GetMaxClass() const { return max_class_; }
+
+bool Solver::State::Day::HasClasses() const { return num_classes_ != 0; }
+
 struct hash {
   explicit hash(size_t seed) : seed_(seed) {}
 
@@ -129,6 +139,8 @@ int Random(int n) {
   return std::rand() % n;
 }
 
+bool RandomBool() { return Random(2) == 0; }
+
 Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
   auto state = SolveNaive(problem);
   int idle_steps = 0;
@@ -142,62 +154,60 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
      */
     for (int t = 0; t < 50; ++t) {
       // Generate a swap.
+      auto g = 1 + Random(problem->num_groups);
       auto d1 = 1 + Random(kDaysPerWeek);
-      auto c1 = 1 + Random(kClassesPerDay);
-      auto p = 1 + Random(problem->num_profs);
-      auto g = state.prof[p][d1].GetClass(c1);
-      if (g == 0) {
+      auto &group1 = state.group[g][d1];
+      if (!group1.HasClasses()) {
+        continue;
+      }
+      auto c1 = RandomBool() ? group1.GetMinClass() : group1.GetMaxClass();
+      auto p = group1.GetClass(c1);
+      auto &prof1 = state.prof[p][d1];
+      if ((1 < c1 && c1 < kClassesPerDay) &&
+          (prof1.HasClass(c1 - 1) && prof1.HasClass(c1 + 1))) {
         continue;
       }
       auto d2 = 1 + Random(kDaysPerWeek);
       if (d2 == d1) {
         continue;
       }
-      auto c2 = 1 + Random(kClassesPerDay);
-      if (state.num_free_rooms[d2][c2] == 0 || state.prof[p][d2].HasClass(c2) ||
-          state.group[g][d2].HasClass(c2)) {
+      auto &group2 = state.group[g][d2];
+      auto &prof2 = state.prof[p][d2];
+      auto c2 =
+          RandomBool() ? group2.GetMinClass() - 1 : group2.GetMaxClass() + 1;
+      if (!(1 <= c2 && c2 <= kClassesPerDay)) {
+        continue;
+      }
+      if (prof2.HasClass(c2) || state.num_free_rooms[d2][c2] == 0) {
         continue;
       }
 
-      if (1 < c1 && c1 < kClassesPerDay) {
-        auto group_will_have_empty_slot = state.group[g][d1].HasClass(c1 - 1) &&
-                                          state.group[g][d1].HasClass(c1 + 1);
-        if (group_will_have_empty_slot) {
-          continue;
-        }
-        auto prof_will_have_empty_slot = state.prof[p][d1].HasClass(c1 - 1) &&
-                                         state.prof[p][d1].HasClass(c1 + 1);
-        if (prof_will_have_empty_slot) {
-          continue;
-        }
-      }
-
       // Apply swap.
-      auto new_group1 = state.group[g][d1];
-      auto new_group2 = state.group[g][d2];
-      auto new_prof1 = state.prof[p][d1];
-      auto new_prof2 = state.prof[p][d2];
+      auto new_group1 = group1;
+      auto new_group2 = group2;
+      auto new_prof1 = prof1;
+      auto new_prof2 = prof2;
       new_group1.RemoveClass(c1);
       new_prof1.RemoveClass(c1);
       new_group2.AddClass(c2, p);
       new_prof2.AddClass(c2, g);
 
       auto new_fatigue = state.fatigue;
-      new_fatigue -= state.group[g][d1].Fatigue();
-      new_fatigue -= state.prof[p][d1].Fatigue();
-      new_fatigue -= state.group[g][d2].Fatigue();
-      new_fatigue -= state.prof[p][d2].Fatigue();
+      new_fatigue -= group1.Fatigue();
+      new_fatigue -= group2.Fatigue();
+      new_fatigue -= prof1.Fatigue();
+      new_fatigue -= prof2.Fatigue();
       new_fatigue += new_group1.Fatigue();
-      new_fatigue += new_prof1.Fatigue();
       new_fatigue += new_group2.Fatigue();
+      new_fatigue += new_prof1.Fatigue();
       new_fatigue += new_prof2.Fatigue();
 
       if (new_fatigue <= state.fatigue) {
         // Accept swap.
-        state.group[g][d1] = new_group1;
-        state.group[g][d2] = new_group2;
-        state.prof[p][d1] = new_prof1;
-        state.prof[p][d2] = new_prof2;
+        group1 = new_group1;
+        group2 = new_group2;
+        prof1 = new_prof1;
+        prof2 = new_prof2;
         state.fatigue = new_fatigue;
         ++state.num_free_rooms[d1][c1];
         --state.num_free_rooms[d2][c2];

@@ -22,6 +22,10 @@ class Solver {
       void AddClass(class_time_t time, int value);
       void RemoveClass(class_time_t time);
       fatigue_t Fatigue();
+      bool HasClasses() const;
+      int GetMinClass() const;
+      int GetMaxClass() const;
+      bool HasSkips() const;
 
      private:
       int schedule_[kClassesPerDay + 1] = {};
