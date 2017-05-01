@@ -17,8 +17,8 @@ class Solver {
   struct DayStats {
     fatigue_t fatigue;
     bool has_skips;
-    day_t min_class;
-    day_t max_class;
+    class_time_t min_class;
+    class_time_t max_class;
   };
 
   struct State : public Solution {
@@ -32,9 +32,13 @@ class Solver {
   const int kMaxIdleSteps = 1000000;
 
   State SolveNaive(const std::shared_ptr<Problem> &problem);
-  fatigue_t PartialFatigue(const int *schedule, const Solver::DayStats &stats);
+  fatigue_t PartialFatigue(const Solver::DayStats &stats);
   fatigue_t GroupFatigue(const State &state, group_t group, day_t day);
   fatigue_t ProfFatigue(const State &state, prof_t prof, day_t day);
+  void UpdateStats(const int *day_schedule, DayStats &day_stats);
+  void AddClass(DayStats &day_stats, class_time_t time);
+  void RemoveClass(DayStats &day_stats, class_time_t time,
+                   const int *day_schedule);
 };
 
 }  // namespace scheduler
