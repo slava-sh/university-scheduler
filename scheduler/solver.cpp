@@ -139,6 +139,8 @@ int Random(int n) {
   return std::rand() % n;
 }
 
+int RandomBetween(int a, int b) { return a + Random(b - a + 1); }
+
 bool RandomBool() { return Random(2) == 0; }
 
 Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
@@ -160,8 +162,13 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       if (!group1.HasClasses()) {
         continue;
       }
-      auto c1 = RandomBool() ? group1.GetMinClass() : group1.GetMaxClass();
+      auto c1 = group1.HasSkips() ? 1 + Random(kClassesPerDay)
+                                  : (RandomBool() ? group1.GetMinClass()
+                                                  : group1.GetMaxClass());
       auto p = group1.GetClass(c1);
+      if (p == 0) {
+        continue;
+      }
       auto &prof1 = state.prof[p][d1];
       if ((1 < c1 && c1 < kClassesPerDay) &&
           (prof1.HasClass(c1 - 1) && prof1.HasClass(c1 + 1))) {
@@ -173,12 +180,11 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       }
       auto &group2 = state.group[g][d2];
       auto &prof2 = state.prof[p][d2];
-      auto c2 =
-          RandomBool() ? group2.GetMinClass() - 1 : group2.GetMaxClass() + 1;
-      if (!(1 <= c2 && c2 <= kClassesPerDay)) {
-        continue;
-      }
-      if (prof2.HasClass(c2) || state.num_free_rooms[d2][c2] == 0) {
+      auto c2 = group2.HasSkips() ? 1 + Random(kClassesPerDay)
+                                  : (RandomBool() ? group2.GetMinClass() - 1
+                                                  : group2.GetMaxClass() + 1);
+      if (!(1 <= c2 && c2 <= kClassesPerDay) || group2.HasClass(c2) ||
+          prof2.HasClass(c2) || state.num_free_rooms[d2][c2] == 0) {
         continue;
       }
 
