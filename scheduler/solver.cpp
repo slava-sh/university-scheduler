@@ -197,6 +197,36 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
         if (state.fatigue < best_solution.fatigue) {
           best_solution = Solution(state);
         }
+        if (idle_steps > 100000 && state.fatigue < prev_fatigue) {
+            std::cerr << "improved to " << state.fatigue
+                      << " after " << idle_steps << " steps"
+                      << std::endl;
+            std::cerr << "by swapping "
+                      << "(d=" << d1 << ", c=" << c1 << ")"
+                      << " with "
+                      << "(d=" << d2 << ", c=" << c2 << ")"
+                      << " for "
+                      << "(g=" << g << ", p=" << p << ")"
+                      << std::endl;
+            for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
+                for (auto day : {d1, d2}) {
+                    auto old = state.group_schedule[g][day][time];
+                    if (day == d1 && time == c1) {
+                        old = p;
+                    }
+                    if (day == d2 && time == c2) {
+                        old = 0;
+                    }
+                    std::cerr << old << "\t";
+                }
+                std::cerr << "->\t";
+                for (auto day : {d1, d2}) {
+                    std::cerr << state.group_schedule[g][day][time] << "\t";
+                }
+                std::cerr << std::endl;
+            }
+            std::cerr << std::endl;
+        }
       } else {
         // Reject swap.
         state.group_schedule[g][d2][c2] = 0;
