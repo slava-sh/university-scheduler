@@ -92,12 +92,10 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
   state.fatigue = 0;
   for (day_t day = 1; day <= kDaysPerWeek; ++day) {
     for (group_t group = 1; group <= problem->num_groups; ++group) {
-      state.group[group][day].fatigue = Fatigue(state.group[group][day]);
-      state.fatigue += state.group[group][day].fatigue;
+      state.fatigue += Fatigue(state.group[group][day]);
     }
     for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
-      state.prof[prof][day].fatigue = Fatigue(state.prof[prof][day]);
-      state.fatigue += state.prof[prof][day].fatigue;
+      state.fatigue += Fatigue(state.prof[prof][day]);
     }
   }
   return state;
@@ -129,6 +127,9 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
         continue;
       }
       auto d2 = 1 + Random(kDaysPerWeek);
+      if (d2 == d1) {
+        continue;
+      }
       auto c2 = 1 + Random(kClassesPerDay);
       if (state.num_free_rooms[d2][c2] == 0 ||
           state.prof[p][d2].schedule[c2] != 0 ||
@@ -151,36 +152,33 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
         }
       }
 
-      auto prev_fatigue = state.fatigue;
-      auto prev_group_fatigue1 = state.group[g][d1].fatigue;
-      auto prev_group_fatigue2 = state.group[g][d2].fatigue;
-      auto prev_prof_fatigue1 = state.prof[p][d1].fatigue;
-      auto prev_prof_fatigue2 = state.prof[p][d2].fatigue;
-
       // Apply swap.
-      state.fatigue -= state.group[g][d1].fatigue;
-      state.fatigue -= state.prof[p][d1].fatigue;
-      if (d2 != d1) {
-        state.fatigue -= state.group[g][d2].fatigue;
-        state.fatigue -= state.prof[p][d2].fatigue;
-      }
-      state.group[g][d1].schedule[c1] = 0;
-      state.group[g][d2].schedule[c2] = p;
-      state.prof[p][d1].schedule[c1] = 0;
-      state.prof[p][d2].schedule[c2] = g;
-      state.group[g][d1].fatigue = Fatigue(state.group[g][d1]);
-      state.prof[p][d1].fatigue = Fatigue(state.prof[p][d1]);
-      state.fatigue += state.group[g][d1].fatigue;
-      state.fatigue += state.prof[p][d1].fatigue;
-      if (d2 != d1) {
-        state.group[g][d2].fatigue = Fatigue(state.group[g][d2]);
-        state.prof[p][d2].fatigue = Fatigue(state.prof[p][d2]);
-        state.fatigue += state.group[g][d2].fatigue;
-        state.fatigue += state.prof[p][d2].fatigue;
-      }
+      auto new_group1 = state.group[g][d1];
+      auto new_group2 = state.group[g][d2];
+      auto new_prof1 = state.prof[p][d1];
+      auto new_prof2 = state.prof[p][d2];
+      new_group1.schedule[c1] = 0;
+      new_group2.schedule[c2] = p;
+      new_prof1.schedule[c1] = 0;
+      new_prof2.schedule[c2] = g;
 
-      if (state.fatigue <= prev_fatigue) {
+      auto new_fatigue = state.fatigue;
+      new_fatigue -= Fatigue(state.group[g][d1]);
+      new_fatigue -= Fatigue(state.prof[p][d1]);
+      new_fatigue -= Fatigue(state.group[g][d2]);
+      new_fatigue -= Fatigue(state.prof[p][d2]);
+      new_fatigue += Fatigue(new_group1);
+      new_fatigue += Fatigue(new_prof1);
+      new_fatigue += Fatigue(new_group2);
+      new_fatigue += Fatigue(new_prof2);
+
+      if (new_fatigue <= state.fatigue) {
         // Accept swap.
+        state.group[g][d1] = new_group1;
+        state.group[g][d2] = new_group2;
+        state.prof[p][d1] = new_prof1;
+        state.prof[p][d2] = new_prof2;
+        state.fatigue = new_fatigue;
         ++state.num_free_rooms[d1][c1];
         --state.num_free_rooms[d2][c2];
         /* Our state always represents the best solution known.
@@ -188,22 +186,9 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
           best_solution = Solution(state);
         }
          */
-      } else {
-        // Reject swap.
-        state.group[g][d2].schedule[c2] = 0;
-        state.group[g][d1].schedule[c1] = p;
-        state.prof[p][d2].schedule[c2] = 0;
-        state.prof[p][d1].schedule[c1] = g;
-        state.fatigue = prev_fatigue;
-        state.group[g][d1].fatigue = prev_group_fatigue1;
-        state.prof[p][d1].fatigue = prev_prof_fatigue1;
-        if (d2 != d1) {
-          state.group[g][d2].fatigue = prev_group_fatigue2;
-          state.prof[p][d2].fatigue = prev_prof_fatigue2;
-        }
       }
 
-      if (state.fatigue == prev_fatigue) {
+      if (new_fatigue >= state.fatigue) {
         ++idle_steps;
       } else {
         idle_steps = 0;
