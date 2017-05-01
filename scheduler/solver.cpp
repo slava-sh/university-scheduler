@@ -1,4 +1,7 @@
 #include "scheduler/solver.h"
+#include <chrono>
+#include <iomanip>
+#include <fstream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -144,9 +147,14 @@ int RandomBetween(int a, int b) { return a + Random(b - a + 1); }
 bool RandomBool() { return Random(2) == 0; }
 
 Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
+  typedef std::chrono::steady_clock clock;
+  auto start = clock::now();
   auto state = SolveNaive(problem);
   int idle_steps = 0;
   int op = 0;
+  std::ofstream log("./out/log.tsv");
+  log << std::fixed << std::setprecision(4);
+  log << "TimeNanoseconds\tIteration\tFatigue\n";
   while (!ShouldStop()) {
     op++;
     /*
@@ -156,6 +164,14 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       continue;
     }
      */
+    if (op % 1000 == 0) {
+      auto elapsed = clock::now() - start;
+      auto ns =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
+      log << ns << "\t";
+      log << op << "\t";
+      log << state.fatigue << "\n";
+    }
     if (false && op % 30000 == 0) {
       {
         bool skips = false;
@@ -269,6 +285,7 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       }
     }
   }
+  log.close();
   return solution;
 }
 
