@@ -14,25 +14,32 @@ class Solver {
   virtual bool ShouldStop() = 0;
 
  private:
-  template <typename schedule_t>
-  struct DayState {
-    schedule_t schedule[kClassesPerDay + 1];
-    fatigue_t fatigue;
-  };
-
   struct State {
-    fatigue_t fatigue;
-    DayState<prof_t> group[kMaxGroup + 1][kDaysPerWeek + 1];
-    DayState<group_t> prof[kMaxProf + 1][kDaysPerWeek + 1];
-    int num_free_rooms[kDaysPerWeek + 1][kClassesPerDay + 1];
+    class Day {
+     public:
+      int GetClass(class_time_t time) const;
+      bool HasClass(class_time_t time) const;
+      void AddClass(class_time_t time, int value);
+      void RemoveClass(class_time_t time);
+      fatigue_t Fatigue();
+
+     private:
+      int schedule_[kClassesPerDay + 1] = {};
+      fatigue_t fatigue_ = 0;
+      class_time_t min_class_ = 0;
+      class_time_t max_class_ = 0;
+      int num_classes_ = 0;
+    };
+
+    fatigue_t fatigue = 0;
+    Day group[kMaxGroup + 1][kDaysPerWeek + 1];
+    Day prof[kMaxProf + 1][kDaysPerWeek + 1];
+    int num_free_rooms[kDaysPerWeek + 1][kClassesPerDay + 1] = {};
   };
 
   const int kMaxIdleSteps = 1000000;
 
   State SolveNaive(const std::shared_ptr<Problem> &problem);
-
-  template <typename schedule_t>
-  fatigue_t Fatigue(const DayState<schedule_t> &day_state);
 };
 
 }  // namespace scheduler

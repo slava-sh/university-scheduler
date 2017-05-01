@@ -7,11 +7,24 @@ namespace scheduler {
 
 int square(int x) { return x * x; }
 
-template <typename schedule_t>
-fatigue_t Solver::Fatigue(const Solver::DayState<schedule_t> &day_state) {
+int Solver::State::Day::GetClass(class_time_t time) const {
+  return schedule_[time];
+}
+
+bool Solver::State::Day::HasClass(class_time_t time) const {
+  return schedule_[time] != 0;
+}
+
+void Solver::State::Day::AddClass(class_time_t time, int value) {
+  schedule_[time] = value;
+}
+
+void Solver::State::Day::RemoveClass(class_time_t time) { schedule_[time] = 0; }
+
+fatigue_t Solver::State::Day::Fatigue() {
   class_time_t max_time = 0;
   for (class_time_t time = kClassesPerDay; time > 0; --time) {
-    if (day_state.schedule[time] != 0) {
+    if (schedule_[time] != 0) {
       max_time = time;
       break;
     }
@@ -21,7 +34,7 @@ fatigue_t Solver::Fatigue(const Solver::DayState<schedule_t> &day_state) {
   }
   class_time_t min_time = 0;
   for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
-    if (day_state.schedule[time] != 0) {
+    if (schedule_[time] != 0) {
       min_time = time;
       break;
     }
@@ -44,7 +57,7 @@ struct hash {
 };
 
 Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
-  State state = {};
+  State state;
   auto seed = std::rand();
   std::unordered_map<std::pair<group_t, prof_t>, int, hash> classes_to_schedule(
       0, hash(seed));
@@ -74,8 +87,8 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
         if (state.num_free_rooms[day][time] == 0) {
           break;
         }
-        state.group[group][day].schedule[time] = prof;
-        state.prof[prof][day].schedule[time] = group;
+        state.group[group][day].AddClass(time, prof);
+        state.prof[prof][day].AddClass(time, group);
         group_is_busy[group] = true;
         prof_is_busy[prof] = true;
         --state.num_free_rooms[day][time];
@@ -92,10 +105,10 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
   state.fatigue = 0;
   for (day_t day = 1; day <= kDaysPerWeek; ++day) {
     for (group_t group = 1; group <= problem->num_groups; ++group) {
-      state.fatigue += Fatigue(state.group[group][day]);
+      state.fatigue += state.group[group][day].Fatigue();
     }
     for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
-      state.fatigue += Fatigue(state.prof[prof][day]);
+      state.fatigue += state.prof[prof][day].Fatigue();
     }
   }
   return state;
@@ -122,7 +135,7 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       auto d1 = 1 + Random(kDaysPerWeek);
       auto c1 = 1 + Random(kClassesPerDay);
       auto p = 1 + Random(problem->num_profs);
-      auto g = state.prof[p][d1].schedule[c1];
+      auto g = state.prof[p][d1].GetClass(c1);
       if (g == 0) {
         continue;
       }
@@ -131,22 +144,19 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
         continue;
       }
       auto c2 = 1 + Random(kClassesPerDay);
-      if (state.num_free_rooms[d2][c2] == 0 ||
-          state.prof[p][d2].schedule[c2] != 0 ||
-          state.group[g][d2].schedule[c2] != 0) {
+      if (state.num_free_rooms[d2][c2] == 0 || state.prof[p][d2].HasClass(c2) ||
+          state.group[g][d2].HasClass(c2)) {
         continue;
       }
 
       if (1 < c1 && c1 < kClassesPerDay) {
-        auto group_will_have_empty_slot =
-            state.group[g][d1].schedule[c1 - 1] != 0 &&
-            state.group[g][d1].schedule[c1 + 1] != 0;
+        auto group_will_have_empty_slot = state.group[g][d1].HasClass(c1 - 1) &&
+                                          state.group[g][d1].HasClass(c1 + 1);
         if (group_will_have_empty_slot) {
           continue;
         }
-        auto prof_will_have_empty_slot =
-            state.prof[p][d1].schedule[c1 - 1] != 0 &&
-            state.prof[p][d1].schedule[c1 + 1] != 0;
+        auto prof_will_have_empty_slot = state.prof[p][d1].HasClass(c1 - 1) &&
+                                         state.prof[p][d1].HasClass(c1 + 1);
         if (prof_will_have_empty_slot) {
           continue;
         }
@@ -157,20 +167,20 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       auto new_group2 = state.group[g][d2];
       auto new_prof1 = state.prof[p][d1];
       auto new_prof2 = state.prof[p][d2];
-      new_group1.schedule[c1] = 0;
-      new_group2.schedule[c2] = p;
-      new_prof1.schedule[c1] = 0;
-      new_prof2.schedule[c2] = g;
+      new_group1.RemoveClass(c1);
+      new_group2.AddClass(c2, p);
+      new_prof1.RemoveClass(c1);
+      new_prof2.AddClass(c2, g);
 
       auto new_fatigue = state.fatigue;
-      new_fatigue -= Fatigue(state.group[g][d1]);
-      new_fatigue -= Fatigue(state.prof[p][d1]);
-      new_fatigue -= Fatigue(state.group[g][d2]);
-      new_fatigue -= Fatigue(state.prof[p][d2]);
-      new_fatigue += Fatigue(new_group1);
-      new_fatigue += Fatigue(new_prof1);
-      new_fatigue += Fatigue(new_group2);
-      new_fatigue += Fatigue(new_prof2);
+      new_fatigue -= state.group[g][d1].Fatigue();
+      new_fatigue -= state.prof[p][d1].Fatigue();
+      new_fatigue -= state.group[g][d2].Fatigue();
+      new_fatigue -= state.prof[p][d2].Fatigue();
+      new_fatigue += new_group1.Fatigue();
+      new_fatigue += new_prof1.Fatigue();
+      new_fatigue += new_group2.Fatigue();
+      new_fatigue += new_prof2.Fatigue();
 
       if (new_fatigue <= state.fatigue) {
         // Accept swap.
@@ -205,7 +215,7 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
     for (day_t day = 1; day <= kDaysPerWeek; ++day) {
       for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
         solution.group_schedule[group][day][time] =
-            state.group[group][day].schedule[time];
+            state.group[group][day].GetClass(time);
       }
     }
   }
