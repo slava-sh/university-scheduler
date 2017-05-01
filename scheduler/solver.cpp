@@ -7,7 +7,8 @@ namespace scheduler {
 
 int square(int x) { return x * x; }
 
-fatigue_t Solver::PartialFatigue(const int *schedule) {
+fatigue_t Solver::PartialFatigue(const int *schedule,
+                                 const Solver::DayStats &stats) {
   class_time_t max_time = 0;
   for (class_time_t time = kClassesPerDay; time > 0; --time) {
     if (schedule[time] != 0) {
@@ -29,11 +30,13 @@ fatigue_t Solver::PartialFatigue(const int *schedule) {
 }
 
 fatigue_t Solver::GroupFatigue(const State &state, group_t group, day_t day) {
-  return PartialFatigue(state.group_schedule[group][day]);
+  return PartialFatigue(state.group_schedule[group][day],
+                        state.group_stats[group][day]);
 }
 
 fatigue_t Solver::ProfFatigue(const State &state, prof_t prof, day_t day) {
-  return PartialFatigue(state.prof_schedule[prof][day]);
+  return PartialFatigue(state.prof_schedule[prof][day],
+                        state.prof_stats[prof][day]);
 }
 
 namespace {
@@ -104,12 +107,14 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
   state.fatigue = 0;
   for (day_t day = 1; day <= kDaysPerWeek; ++day) {
     for (group_t group = 1; group <= problem->num_groups; ++group) {
-      state.group_fatigue[group][day] = GroupFatigue(state, group, day);
-      state.fatigue += state.group_fatigue[group][day];
+      state.group_stats[group][day].has_skips = true;
+      state.group_stats[group][day].fatigue = GroupFatigue(state, group, day);
+      state.fatigue += state.group_stats[group][day].fatigue;
     }
     for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
-      state.prof_fatigue[prof][day] = ProfFatigue(state, prof, day);
-      state.fatigue += state.prof_fatigue[prof][day];
+      state.prof_stats[prof][day].has_skips = true;
+      state.prof_stats[prof][day].fatigue = ProfFatigue(state, prof, day);
+      state.fatigue += state.prof_stats[prof][day].fatigue;
     }
   }
   return state;
@@ -163,31 +168,31 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       }
 
       auto prev_fatigue = state.fatigue;
-      auto prev_group_fatigue1 = state.group_fatigue[g][d1];
-      auto prev_group_fatigue2 = state.group_fatigue[g][d2];
-      auto prev_prof_fatigue1 = state.prof_fatigue[p][d1];
-      auto prev_prof_fatigue2 = state.prof_fatigue[p][d2];
+      auto prev_group_fatigue1 = state.group_stats[g][d1].fatigue;
+      auto prev_group_fatigue2 = state.group_stats[g][d2].fatigue;
+      auto prev_prof_fatigue1 = state.prof_stats[p][d1].fatigue;
+      auto prev_prof_fatigue2 = state.prof_stats[p][d2].fatigue;
 
       // Apply swap.
-      state.fatigue -= state.group_fatigue[g][d1];
-      state.fatigue -= state.prof_fatigue[p][d1];
+      state.fatigue -= state.group_stats[g][d1].fatigue;
+      state.fatigue -= state.prof_stats[p][d1].fatigue;
       if (d2 != d1) {
-        state.fatigue -= state.group_fatigue[g][d2];
-        state.fatigue -= state.prof_fatigue[p][d2];
+        state.fatigue -= state.group_stats[g][d2].fatigue;
+        state.fatigue -= state.prof_stats[p][d2].fatigue;
       }
       state.group_schedule[g][d1][c1] = 0;
       state.group_schedule[g][d2][c2] = p;
       state.prof_schedule[p][d1][c1] = 0;
       state.prof_schedule[p][d2][c2] = g;
-      state.group_fatigue[g][d1] = GroupFatigue(state, g, d1);
-      state.prof_fatigue[p][d1] = ProfFatigue(state, p, d1);
-      state.fatigue += state.group_fatigue[g][d1];
-      state.fatigue += state.prof_fatigue[p][d1];
+      state.group_stats[g][d1].fatigue = GroupFatigue(state, g, d1);
+      state.prof_stats[p][d1].fatigue = ProfFatigue(state, p, d1);
+      state.fatigue += state.group_stats[g][d1].fatigue;
+      state.fatigue += state.prof_stats[p][d1].fatigue;
       if (d2 != d1) {
-        state.group_fatigue[g][d2] = GroupFatigue(state, g, d2);
-        state.prof_fatigue[p][d2] = ProfFatigue(state, p, d2);
-        state.fatigue += state.group_fatigue[g][d2];
-        state.fatigue += state.prof_fatigue[p][d2];
+        state.group_stats[g][d2].fatigue = GroupFatigue(state, g, d2);
+        state.prof_stats[p][d2].fatigue = ProfFatigue(state, p, d2);
+        state.fatigue += state.group_stats[g][d2].fatigue;
+        state.fatigue += state.prof_stats[p][d2].fatigue;
       }
 
       if (state.fatigue <= prev_fatigue) {
@@ -204,11 +209,11 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
         state.prof_schedule[p][d2][c2] = 0;
         state.prof_schedule[p][d1][c1] = g;
         state.fatigue = prev_fatigue;
-        state.group_fatigue[g][d1] = prev_group_fatigue1;
-        state.prof_fatigue[p][d1] = prev_prof_fatigue1;
+        state.group_stats[g][d1].fatigue = prev_group_fatigue1;
+        state.prof_stats[p][d1].fatigue = prev_prof_fatigue1;
         if (d2 != d1) {
-          state.group_fatigue[g][d2] = prev_group_fatigue2;
-          state.prof_fatigue[p][d2] = prev_prof_fatigue2;
+          state.group_stats[g][d2].fatigue = prev_group_fatigue2;
+          state.prof_stats[p][d2].fatigue = prev_prof_fatigue2;
         }
       }
 
