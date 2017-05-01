@@ -156,6 +156,26 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       continue;
     }
      */
+    if (false && op % 30000 == 0) {
+      {
+        bool skips = false;
+        for (group_t group = 1; group <= problem->num_groups; ++group) {
+          for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+            skips = skips || state.group[group][day].HasSkips();
+          }
+        }
+        std::cerr << "op=" << op << " group skips=" << skips << std::endl;
+      }
+      {
+        bool skips = false;
+        for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
+          for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+            skips = skips || state.prof[prof][day].HasSkips();
+          }
+        }
+        std::cerr << "op=" << op << " prof skips=" << skips << std::endl;
+      }
+    }
     for (int t = 0; t < 50; ++t) {
       // Generate a swap.
       auto g = 1 + Random(problem->num_groups);
@@ -173,7 +193,8 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       }
       auto &prof1 = state.prof[p][d1];
       if ((1 < c1 && c1 < kClassesPerDay) &&
-          (prof1.HasClass(c1 - 1) && prof1.HasClass(c1 + 1))) {
+          ((group1.HasClass(c1 - 1) && group1.HasClass(c1 + 1)) ||
+           (prof1.HasClass(c1 - 1) && prof1.HasClass(c1 + 1)))) {
         continue;
       }
       auto d2 = 1 + Random(kDaysPerWeek);
