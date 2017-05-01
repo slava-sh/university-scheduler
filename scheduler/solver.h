@@ -25,7 +25,6 @@ class Solver {
 
      private:
       int schedule_[kClassesPerDay + 1] = {};
-      fatigue_t fatigue_ = 0;
       class_time_t min_class_ = 0;
       class_time_t max_class_ = 0;
       int num_classes_ = 0;

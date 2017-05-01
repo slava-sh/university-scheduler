@@ -17,29 +17,39 @@ bool Solver::State::Day::HasClass(class_time_t time) const {
 
 void Solver::State::Day::AddClass(class_time_t time, int value) {
   schedule_[time] = value;
+  if (num_classes_ == 0) {
+    min_class_ = time;
+    max_class_ = time;
+  } else if (time < min_class_) {
+    min_class_ = time;
+  } else if (time > max_class_) {
+    max_class_ = time;
+  }
+  ++num_classes_;
 }
 
-void Solver::State::Day::RemoveClass(class_time_t time) { schedule_[time] = 0; }
+void Solver::State::Day::RemoveClass(class_time_t time) {
+  schedule_[time] = 0;
+  --num_classes_;
+  if (num_classes_ == 0) {
+    min_class_ = 0;
+    max_class_ = 0;
+  } else if (time == min_class_) {
+    do {
+      ++min_class_;
+    } while (schedule_[min_class_] == 0);
+  } else if (time == max_class_) {
+    do {
+      --max_class_;
+    } while (schedule_[max_class_] == 0);
+  }
+}
 
 fatigue_t Solver::State::Day::Fatigue() {
-  class_time_t max_time = 0;
-  for (class_time_t time = kClassesPerDay; time > 0; --time) {
-    if (schedule_[time] != 0) {
-      max_time = time;
-      break;
-    }
-  }
-  if (max_time == 0) {
+  if (num_classes_ == 0) {
     return 0;
   }
-  class_time_t min_time = 0;
-  for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
-    if (schedule_[time] != 0) {
-      min_time = time;
-      break;
-    }
-  }
-  return square(2 + max_time - min_time + 1);
+  return square(2 + max_class_ - min_class_ + 1);
 }
 
 struct hash {
@@ -168,8 +178,8 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       auto new_prof1 = state.prof[p][d1];
       auto new_prof2 = state.prof[p][d2];
       new_group1.RemoveClass(c1);
-      new_group2.AddClass(c2, p);
       new_prof1.RemoveClass(c1);
+      new_group2.AddClass(c2, p);
       new_prof2.AddClass(c2, g);
 
       auto new_fatigue = state.fatigue;
