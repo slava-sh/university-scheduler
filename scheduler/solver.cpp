@@ -146,7 +146,9 @@ bool RandomBool() { return Random(2) == 0; }
 Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
   auto state = SolveNaive(problem);
   int idle_steps = 0;
+  int op = 0;
   while (!ShouldStop()) {
+    op++;
     /*
     if (idle_steps == kMaxIdleSteps) {
       state = SolveNaive(problem);
@@ -233,6 +235,7 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       break;
     }
   }
+  std::cerr << "op=" << op << std::endl;
 
   Solution solution;
   solution.problem = problem;
