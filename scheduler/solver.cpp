@@ -53,7 +53,7 @@ fatigue_t Solver::State::Day::Fatigue() {
 }
 
 bool Solver::State::Day::HasSkips() const {
-  return HasClasses() && max_class_ - min_class_ + 1 == num_classes_;
+  return HasClasses() && max_class_ - min_class_ + 1 != num_classes_;
 }
 
 int Solver::State::Day::GetMinClass() const { return min_class_; }
