@@ -7,10 +7,11 @@ namespace scheduler {
 
 int square(int x) { return x * x; }
 
-fatigue_t Solver::PartialFatigue(const int *schedule) {
+template <typename schedule_t>
+fatigue_t Solver::Fatigue(const Solver::DayState<schedule_t> &day_state) {
   class_time_t max_time = 0;
   for (class_time_t time = kClassesPerDay; time > 0; --time) {
-    if (schedule[time] != 0) {
+    if (day_state.schedule[time] != 0) {
       max_time = time;
       break;
     }
@@ -20,23 +21,13 @@ fatigue_t Solver::PartialFatigue(const int *schedule) {
   }
   class_time_t min_time = 0;
   for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
-    if (schedule[time] != 0) {
+    if (day_state.schedule[time] != 0) {
       min_time = time;
       break;
     }
   }
   return square(2 + max_time - min_time + 1);
 }
-
-fatigue_t Solver::GroupFatigue(const State &state, group_t group, day_t day) {
-  return PartialFatigue(state.group_schedule[group][day]);
-}
-
-fatigue_t Solver::ProfFatigue(const State &state, prof_t prof, day_t day) {
-  return PartialFatigue(state.prof_schedule[prof][day]);
-}
-
-namespace {
 
 struct hash {
   explicit hash(size_t seed) : seed_(seed) {}
@@ -52,11 +43,8 @@ struct hash {
   size_t seed_;
 };
 
-}  // namespace
-
 Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
   State state = {};
-  state.problem = problem;
   auto seed = std::rand();
   std::unordered_map<std::pair<group_t, prof_t>, int, hash> classes_to_schedule(
       0, hash(seed));
@@ -86,8 +74,8 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
         if (state.num_free_rooms[day][time] == 0) {
           break;
         }
-        state.group_schedule[group][day][time] = prof;
-        state.prof_schedule[prof][day][time] = group;
+        state.group[group][day].schedule[time] = prof;
+        state.prof[prof][day].schedule[time] = group;
         group_is_busy[group] = true;
         prof_is_busy[prof] = true;
         --state.num_free_rooms[day][time];
@@ -104,12 +92,12 @@ Solver::State Solver::SolveNaive(const std::shared_ptr<Problem> &problem) {
   state.fatigue = 0;
   for (day_t day = 1; day <= kDaysPerWeek; ++day) {
     for (group_t group = 1; group <= problem->num_groups; ++group) {
-      state.group_fatigue[group][day] = GroupFatigue(state, group, day);
-      state.fatigue += state.group_fatigue[group][day];
+      state.group[group][day].fatigue = Fatigue(state.group[group][day]);
+      state.fatigue += state.group[group][day].fatigue;
     }
     for (prof_t prof = 1; prof <= problem->num_profs; ++prof) {
-      state.prof_fatigue[prof][day] = ProfFatigue(state, prof, day);
-      state.fatigue += state.prof_fatigue[prof][day];
+      state.prof[prof][day].fatigue = Fatigue(state.prof[prof][day]);
+      state.fatigue += state.prof[prof][day].fatigue;
     }
   }
   return state;
@@ -122,93 +110,96 @@ int Random(int n) {
 
 Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
   auto state = SolveNaive(problem);
-  Solution best_solution(state);
   int idle_steps = 0;
   while (!ShouldStop()) {
+    /*
     if (idle_steps == kMaxIdleSteps) {
       state = SolveNaive(problem);
       idle_steps = 0;
       continue;
     }
+     */
     for (int t = 0; t < 50; ++t) {
       // Generate a swap.
       auto d1 = 1 + Random(kDaysPerWeek);
       auto c1 = 1 + Random(kClassesPerDay);
       auto p = 1 + Random(problem->num_profs);
-      auto g = state.prof_schedule[p][d1][c1];
+      auto g = state.prof[p][d1].schedule[c1];
       if (g == 0) {
         continue;
       }
       auto d2 = 1 + Random(kDaysPerWeek);
       auto c2 = 1 + Random(kClassesPerDay);
       if (state.num_free_rooms[d2][c2] == 0 ||
-          state.prof_schedule[p][d2][c2] != 0 ||
-          state.group_schedule[g][d2][c2] != 0) {
+          state.prof[p][d2].schedule[c2] != 0 ||
+          state.group[g][d2].schedule[c2] != 0) {
         continue;
       }
 
       if (1 < c1 && c1 < kClassesPerDay) {
         auto group_will_have_empty_slot =
-            state.group_schedule[g][d1][c1 - 1] != 0 &&
-            state.group_schedule[g][d1][c1 + 1] != 0;
+            state.group[g][d1].schedule[c1 - 1] != 0 &&
+            state.group[g][d1].schedule[c1 + 1] != 0;
         if (group_will_have_empty_slot) {
           continue;
         }
         auto prof_will_have_empty_slot =
-            state.prof_schedule[p][d1][c1 - 1] != 0 &&
-            state.prof_schedule[p][d1][c1 + 1] != 0;
+            state.prof[p][d1].schedule[c1 - 1] != 0 &&
+            state.prof[p][d1].schedule[c1 + 1] != 0;
         if (prof_will_have_empty_slot) {
           continue;
         }
       }
 
       auto prev_fatigue = state.fatigue;
-      auto prev_group_fatigue1 = state.group_fatigue[g][d1];
-      auto prev_group_fatigue2 = state.group_fatigue[g][d2];
-      auto prev_prof_fatigue1 = state.prof_fatigue[p][d1];
-      auto prev_prof_fatigue2 = state.prof_fatigue[p][d2];
+      auto prev_group_fatigue1 = state.group[g][d1].fatigue;
+      auto prev_group_fatigue2 = state.group[g][d2].fatigue;
+      auto prev_prof_fatigue1 = state.prof[p][d1].fatigue;
+      auto prev_prof_fatigue2 = state.prof[p][d2].fatigue;
 
       // Apply swap.
-      state.fatigue -= state.group_fatigue[g][d1];
-      state.fatigue -= state.prof_fatigue[p][d1];
+      state.fatigue -= state.group[g][d1].fatigue;
+      state.fatigue -= state.prof[p][d1].fatigue;
       if (d2 != d1) {
-        state.fatigue -= state.group_fatigue[g][d2];
-        state.fatigue -= state.prof_fatigue[p][d2];
+        state.fatigue -= state.group[g][d2].fatigue;
+        state.fatigue -= state.prof[p][d2].fatigue;
       }
-      state.group_schedule[g][d1][c1] = 0;
-      state.group_schedule[g][d2][c2] = p;
-      state.prof_schedule[p][d1][c1] = 0;
-      state.prof_schedule[p][d2][c2] = g;
-      state.group_fatigue[g][d1] = GroupFatigue(state, g, d1);
-      state.prof_fatigue[p][d1] = ProfFatigue(state, p, d1);
-      state.fatigue += state.group_fatigue[g][d1];
-      state.fatigue += state.prof_fatigue[p][d1];
+      state.group[g][d1].schedule[c1] = 0;
+      state.group[g][d2].schedule[c2] = p;
+      state.prof[p][d1].schedule[c1] = 0;
+      state.prof[p][d2].schedule[c2] = g;
+      state.group[g][d1].fatigue = Fatigue(state.group[g][d1]);
+      state.prof[p][d1].fatigue = Fatigue(state.prof[p][d1]);
+      state.fatigue += state.group[g][d1].fatigue;
+      state.fatigue += state.prof[p][d1].fatigue;
       if (d2 != d1) {
-        state.group_fatigue[g][d2] = GroupFatigue(state, g, d2);
-        state.prof_fatigue[p][d2] = ProfFatigue(state, p, d2);
-        state.fatigue += state.group_fatigue[g][d2];
-        state.fatigue += state.prof_fatigue[p][d2];
+        state.group[g][d2].fatigue = Fatigue(state.group[g][d2]);
+        state.prof[p][d2].fatigue = Fatigue(state.prof[p][d2]);
+        state.fatigue += state.group[g][d2].fatigue;
+        state.fatigue += state.prof[p][d2].fatigue;
       }
 
       if (state.fatigue <= prev_fatigue) {
         // Accept swap.
         ++state.num_free_rooms[d1][c1];
         --state.num_free_rooms[d2][c2];
+        /* Our state always represents the best solution known.
         if (state.fatigue < best_solution.fatigue) {
           best_solution = Solution(state);
         }
+         */
       } else {
         // Reject swap.
-        state.group_schedule[g][d2][c2] = 0;
-        state.group_schedule[g][d1][c1] = p;
-        state.prof_schedule[p][d2][c2] = 0;
-        state.prof_schedule[p][d1][c1] = g;
+        state.group[g][d2].schedule[c2] = 0;
+        state.group[g][d1].schedule[c1] = p;
+        state.prof[p][d2].schedule[c2] = 0;
+        state.prof[p][d1].schedule[c1] = g;
         state.fatigue = prev_fatigue;
-        state.group_fatigue[g][d1] = prev_group_fatigue1;
-        state.prof_fatigue[p][d1] = prev_prof_fatigue1;
+        state.group[g][d1].fatigue = prev_group_fatigue1;
+        state.prof[p][d1].fatigue = prev_prof_fatigue1;
         if (d2 != d1) {
-          state.group_fatigue[g][d2] = prev_group_fatigue2;
-          state.prof_fatigue[p][d2] = prev_prof_fatigue2;
+          state.group[g][d2].fatigue = prev_group_fatigue2;
+          state.prof[p][d2].fatigue = prev_prof_fatigue2;
         }
       }
 
@@ -221,7 +212,19 @@ Solution Solver::Solve(const std::shared_ptr<Problem> &problem) {
       break;
     }
   }
-  return best_solution;
+
+  Solution solution;
+  solution.problem = problem;
+  solution.fatigue = state.fatigue;
+  for (group_t group = 1; group <= problem->num_groups; ++group) {
+    for (day_t day = 1; day <= kDaysPerWeek; ++day) {
+      for (class_time_t time = 1; time <= kClassesPerDay; ++time) {
+        solution.group_schedule[group][day][time] =
+            state.group[group][day].schedule[time];
+      }
+    }
+  }
+  return solution;
 }
 
 }  // namespace scheduler
